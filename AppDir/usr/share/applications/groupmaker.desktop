@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=GroupMaker
+Comment=Create random student groups with minimal pair repetition
+Exec=groupmaker
+Icon=groupmaker
+Type=Application
+Categories=Education;
+Terminal=false
