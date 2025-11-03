@@ -45,6 +45,26 @@ def save_class(name: str, students: list[str]) -> None:
 def list_classes() -> list[str]:
     return sorted([p.stem for p in CLASSES_DIR.glob("*.json")])
 
+def create_default_class():
+    """Create a default sample class if no classes exist"""
+    if not list_classes():  # Only create if no classes exist
+        default_students = [
+            "Taylor Swift",
+            "Leonardo DiCaprio", 
+            "Rihanna",
+            "Chris Hemsworth",
+            "Zendaya",
+            "Beyoncé",
+            "Tom Holland",
+            "Billie Eilish",
+            "Ryan Gosling",
+            "Emma Watson",
+            "Dwayne Johnson",
+            "Selena Gomez",
+            "Robert Downey Jr."
+        ]
+        save_class("Math101", default_students)
+
 # ----------------------------
 # Your core grouping logic (unchanged)
 # ----------------------------
@@ -170,6 +190,10 @@ class MainWindow(QMainWindow):
         left_widget = QWidget()
         left = QVBoxLayout(left_widget)
         classes_row = QHBoxLayout()
+        
+        # Create default class if none exist
+        create_default_class()
+        
         self.class_combo = QComboBox()
         self.class_combo.addItems(list_classes())
         self.class_combo.currentTextChanged.connect(self.on_class_changed)
@@ -226,6 +250,8 @@ class MainWindow(QMainWindow):
         btn_save_class.clicked.connect(self.save_current_class)
         btn_export = QPushButton("Export plan to TXT")
         btn_export.clicked.connect(self.export_plan)
+        btn_about = QPushButton("About")
+        btn_about.clicked.connect(self.show_about)
         
         # Font size selector
         self.font_size_combo = QComboBox()
@@ -236,6 +262,7 @@ class MainWindow(QMainWindow):
         controls2.addWidget(btn_generate)
         controls2.addWidget(btn_save_class)
         controls2.addWidget(btn_export)
+        controls2.addWidget(btn_about)
         controls2.addWidget(QLabel("Font size:"))
         controls2.addWidget(self.font_size_combo)
 
@@ -292,6 +319,60 @@ class MainWindow(QMainWindow):
             self.on_class_changed(self.class_combo.currentText())
 
         self.current_plan = None
+
+    # ---------- about dialog ----------
+    def show_about(self):
+        about_text = f"""
+<h2>GroupMaker</h2>
+<p><b>Version:</b> 1.0</p>
+<p><b>Author:</b> Magnus Simonsen</p>
+<p><b>Description:</b> A simple desktop application for teachers to create random student groups with minimal pair repetition.</p>
+
+<h3>Features:</h3>
+<ul>
+<li>Add and manage multiple classes</li>
+<li>Save student lists automatically</li>
+<li>Mark attendance with checkboxes</li>
+<li>Generate balanced random groups</li>
+<li>Export group plans to text files</li>
+<li>Adjustable font sizes and resizable panels</li>
+</ul>
+
+<h3>License:</h3>
+<p><b>MIT License</b></p>
+<p>Copyright (c) 2025 Magnus Simonsen</p>
+
+<p style="font-size: 10px;">
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+<br><br>
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+<br><br>
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</p>
+
+<p><b>Built with:</b> Python and PySide6</p>
+<p><b>Repository:</b> <a href="https://github.com/magnussimonsen/StudentGroupMaker">https://github.com/magnussimonsen/StudentGroupMaker</a></p>
+        """
+        
+        msg = QMessageBox(self)
+        msg.setWindowTitle("About GroupMaker")
+        msg.setTextFormat(Qt.RichText)  # Enable HTML formatting
+        msg.setText(about_text)
+        msg.setIcon(QMessageBox.Information)  # Use standard information icon
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec()
 
     # ---------- font size management ----------
     def on_font_size_changed(self, size_text: str):
