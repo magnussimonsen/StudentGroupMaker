@@ -255,7 +255,7 @@ class MainWindow(QMainWindow):
         
         # Font size selector
         self.font_size_combo = QComboBox()
-        self.font_size_combo.addItems(["8", "9", "10", "11", "12", "14", "16", "18", "20", "24"])
+        self.font_size_combo.addItems(["8", "9", "10", "11", "12", "13", "14", "15", "16", "18", "20", "24"])
         self.font_size_combo.setCurrentText("10")  # Default font size
         self.font_size_combo.currentTextChanged.connect(self.on_font_size_changed)
         
