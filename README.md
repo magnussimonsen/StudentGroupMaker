@@ -48,7 +48,55 @@ python group-maker.py     # Windows
 
 ---
 
-## 📦 Build Standalone Executable
+## 📦 Download (Linux)
+
+### AppImage (Recommended)
+Download the portable AppImage - no installation required:
+
+```bash
+# Download latest release
+wget https://github.com/magnussimonsen/StudentGroupMaker/releases/latest/download/GroupMaker-x86_64.AppImage
+
+# Make executable
+chmod +x GroupMaker-x86_64.AppImage
+
+# Run (if you get FUSE errors, see below)
+./GroupMaker-x86_64.AppImage
+```
+
+**FUSE Issues?** If you see errors about FUSE or mounting, use:
+```bash
+./GroupMaker-x86_64.AppImage --appimage-extract-and-run
+```
+
+This is common on Ubuntu 24.04+ and is the recommended method for modern Linux systems.
+
+---
+
+## 🚀 Run from Source
+
+### Prerequisites
+- Python 3.9+
+- Virtual environment (recommended)
+
+### Setup and Run
+```bash
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# .venv\Scripts\activate   # Windows
+
+# Install dependencies
+pip install -r dev-scripts/requirements.txt
+
+# Run application
+./run-dev.sh              # Linux/Mac
+python group-maker.py     # Windows
+```
+
+---
+
+## 🔨 Build Standalone Executable
 
 ### Linux
 ```bash
@@ -61,6 +109,17 @@ source .venv/bin/activate
 python dev-scripts/build.py
 
 # Output: dist/GroupMaker (~90MB)
+```
+
+### Linux AppImage
+```bash
+# First build the executable (see above)
+./build-wrapper.sh
+
+# Then build AppImage
+./app-image-scripts/build-appimage.sh
+
+# Output: GroupMaker-x86_64.AppImage (~98MB)
 ```
 
 ### Windows
