@@ -104,6 +104,11 @@ def main():
         
         executable = dist_dir / "GroupMaker"
         
+        # Make executable on Unix systems
+        if sys.platform != "win32":
+            import stat
+            executable.chmod(executable.stat().st_mode | stat.S_IEXEC)
+        
         print("\n" + "=" * 70)
         print("✅ BUILD SUCCESSFUL!")
         print("=" * 70)
@@ -112,8 +117,6 @@ def main():
         
         print("\nTo run the application:")
         print(f"  {executable}")
-        print("\nTo make it executable (if not already):")
-        print(f"  chmod +x {executable}")
         
         print("\nTo distribute:")
         print(f"  - Copy {executable} to target system")
