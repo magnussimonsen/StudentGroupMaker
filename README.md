@@ -5,6 +5,12 @@ Built with **Python** and **PySide6**, and easily packaged as a standalone Windo
 
 ---
 
+## 📸 Screenshot
+
+![GroupMaker App](dev-screenshots/GroupMaker-2025-11-03.png)
+
+---
+
 ## ✨ Features
 
 - Add and manage multiple **classes**
