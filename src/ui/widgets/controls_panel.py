@@ -1,0 +1,138 @@
+"""Controls panel (right panel)."""
+
+from pathlib import Path
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+    QSpinBox, QPushButton, QComboBox, QMessageBox, QFileDialog
+)
+from PySide6.QtGui import QFont
+
+from ...models import export_plan, DATA_DIR
+from ...constants.start_values import (
+    DEFAULT_STUDENTS_PER_GROUP, 
+    DEFAULT_NUM_GROUPS, 
+    DEFAULT_NUM_ROUNDS
+)
+
+
+class ControlsPanel(QWidget):
+    """Right panel for group generation controls."""
+    
+    generate_requested = Signal(int, int, int, int)  # students, groups, rounds, seed
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._setup_ui()
+    
+    def _setup_ui(self):
+        """Set up the UI layout."""
+        layout = QVBoxLayout(self)
+        
+        # First row: spinboxes
+        spinbox_row = QHBoxLayout()
+        
+        spinbox_row.addWidget(QLabel("Students/group:"))
+        self.num_students = QSpinBox()
+        self.num_students.setRange(2, 99)
+        self.num_students.setValue(DEFAULT_STUDENTS_PER_GROUP)
+        spinbox_row.addWidget(self.num_students)
+        
+        spinbox_row.addSpacing(10)
+        
+        spinbox_row.addWidget(QLabel("Groups:"))
+        self.num_groups = QSpinBox()
+        self.num_groups.setRange(1, 99)
+        self.num_groups.setValue(DEFAULT_NUM_GROUPS)
+        spinbox_row.addWidget(self.num_groups)
+        
+        spinbox_row.addSpacing(10)
+        
+        spinbox_row.addWidget(QLabel("Rounds:"))
+        self.num_rounds = QSpinBox()
+        self.num_rounds.setRange(1, 99)
+        self.num_rounds.setValue(DEFAULT_NUM_ROUNDS)
+        spinbox_row.addWidget(self.num_rounds)
+        
+        spinbox_row.addSpacing(10)
+        
+        spinbox_row.addWidget(QLabel("Seed:"))
+        self.random_seed = QSpinBox()
+        self.random_seed.setRange(0, 999999)
+        self.random_seed.setValue(0)
+        spinbox_row.addWidget(self.random_seed)
+        
+        spinbox_row.addStretch()
+        
+        # Second row: buttons
+        button_row = QHBoxLayout()
+        
+        btn_generate = QPushButton("Generate groups")
+        btn_generate.clicked.connect(self._on_generate)
+        button_row.addWidget(btn_generate)
+        
+        button_row.addSpacing(20)
+        
+        btn_export = QPushButton("Export plan as file")
+        btn_export.clicked.connect(self._on_export)
+        button_row.addWidget(btn_export)
+        
+        button_row.addSpacing(20)
+        
+        btn_matrix = QPushButton("Show Co-occurrence Matrix")
+        btn_matrix.clicked.connect(self._on_show_matrix)
+        button_row.addWidget(btn_matrix)
+        
+        button_row.addStretch()
+        
+        layout.addLayout(spinbox_row)
+        layout.addLayout(button_row)
+    
+    def _on_generate(self):
+        """Emit signal to generate groups."""
+        students = self.num_students.value()
+        groups = self.num_groups.value()
+        rounds = self.num_rounds.value()
+        seed = self.random_seed.value()
+        self.generate_requested.emit(students, groups, rounds, seed)
+    
+    def _on_export(self):
+        """Export the current plan to a text file."""
+        # Get schedule from parent (MainWindow)
+        main_window = self.window()
+        if not hasattr(main_window, 'get_last_schedule'):
+            return
+        
+        schedule = main_window.get_last_schedule()
+        if not schedule:
+            QMessageBox.information(self, "Nothing", "Generate groups first.")
+            return
+        
+        class_name = main_window.get_current_class_name()
+        if not class_name:
+            class_name = "groups"
+        
+        # Let user choose where to save
+        filename, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Export plan", 
+            str(DATA_DIR / "plan.txt"), 
+            "Text Files (*.txt)"
+        )
+        if not filename:
+            return
+        
+        export_plan(filename, class_name, schedule)
+        QMessageBox.information(
+            self, "Exported",
+            f"Saved to:\n{filename}"
+        )
+    
+    def _on_show_matrix(self):
+        """Show the co-occurrence matrix."""
+        # Get schedule from parent (MainWindow)
+        main_window = self.window()
+        if not hasattr(main_window, 'show_cooccurrence_matrix'):
+            return
+        
+        main_window.show_cooccurrence_matrix()

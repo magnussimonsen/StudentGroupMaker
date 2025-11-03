@@ -1,0 +1,544 @@
+#!/usr/bin/env python3
+"""GroupMaker - Entry point for the student group generation application."""
+
+import sys
+from src.main import main
+
+if __name__ == '__main__':
+    sys.exit(main())
+
+        return []
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        # Accept legacy shapes: either list[str] or [[name, present], ...]
+        if data and isinstance(data[0], list):
+            return [row[0] for row in data]
+        return list(map(str, data))
+    except Exception:
+        return []
+
+def save_class(name: str, students: list[str]) -> None:
+    p = class_path(name)
+    p.write_text(json.dumps(students, ensure_ascii=False, indent=2), encoding="utf-8")
+
+def list_classes() -> list[str]:
+    return sorted([p.stem for p in CLASSES_DIR.glob("*.json")])
+
+def create_default_class():
+    """Create a default sample class if no classes exist"""
+    if not list_classes():  # Only create if no classes exist
+        default_students = [
+            "Taylor Swift",
+            "Leonardo DiCaprio", 
+            "Rihanna",
+            "Chris Hemsworth",
+            "Zendaya",
+            "Beyoncé",
+            "Tom Holland",
+            "Billie Eilish",
+            "Ryan Gosling",
+            "Emma Watson",
+            "Dwayne Johnson",
+            "Selena Gomez",
+            "Robert Downey Jr."
+        ]
+        save_class("Math101", default_students)
+
+# ----------------------------
+# Your core grouping logic (unchanged)
+# ----------------------------
+def partition_sizes(n_students, n_groups):
+    base = n_students // n_groups
+    rem  = n_students % n_groups
+    return [base + 1] * rem + [base] * (n_groups - rem)
+
+def round_cost(groups, pair_counts):
+    cost = 0
+    for g in groups:
+        for i in range(len(g)):
+            for j in range(i + 1, len(g)):
+                a, b = g[i], g[j]
+                cost += pair_counts[frozenset((a, b))]
+    return cost
+
+def build_round(students, n_groups, pair_counts, restarts=200, rng=None):
+    if rng is None:
+        rng = random.Random()
+    sizes = partition_sizes(len(students), n_groups)
+    best_groups, best_cost = None, float("inf")
+
+    for _ in range(restarts):
+        unassigned = students[:]
+        rng.shuffle(unassigned)
+        groups = []
+
+        deg = {s: 0 for s in unassigned}
+        for s in unassigned:
+            deg[s] = sum(pair_counts[frozenset((s, t))] for t in unassigned if t != s)
+        unassigned.sort(key=lambda s: (-deg[s], rng.random()))
+
+        for size in sizes:
+            seed = unassigned.pop(0)
+            group = [seed]
+            for _ in range(size - 1):
+                best_cand, best_incr = None, float("inf")
+                pool = unassigned if len(unassigned) <= 20 else rng.sample(unassigned, 20)
+                for cand in pool:
+                    incr = sum(pair_counts[frozenset((cand, x))] for x in group)
+                    if incr < best_incr or (incr == best_incr and rng.random() < 0.5):
+                        best_cand, best_incr = cand, incr
+                if best_cand is None:
+                    best_cand = unassigned[0]
+                group.append(best_cand)
+                unassigned.remove(best_cand)
+            groups.append(group)
+
+        cost = round_cost(groups, pair_counts)
+        if cost < best_cost:
+            best_groups, best_cost = groups, cost
+            if best_cost == 0:
+                break
+
+    return best_groups, best_cost
+
+def schedule_groups(students, n_groups, rounds, seed=None, restarts=200):
+    rng = random.Random(seed)
+    students = students[:]
+    pair_counts = defaultdict(int)
+    all_rounds = []
+
+    for _ in range(rounds):
+        groups, _ = build_round(students, n_groups, pair_counts, restarts=restarts, rng=rng)
+        all_rounds.append(groups)
+        for g in groups:
+            for i in range(len(g)):
+                for j in range(i + 1, len(g)):
+                    pair_counts[frozenset((g[i], g[j]))] += 1
+        rng.shuffle(students)
+
+    return all_rounds
+
+def schedule_quality(rounds):
+    seen_pairs = set()
+    total_pairs = 0
+    new_pairs = 0
+    per_round_pct = []
+    per_round_counts = []
+
+    for groups in rounds:
+        r_total = 0
+        r_new = 0
+        for g in groups:
+            for i in range(len(g)):
+                for j in range(i + 1, len(g)):
+                    a, b = g[i], g[j]
+                    pair = tuple(sorted((a, b)))
+                    total_pairs += 1
+                    r_total += 1
+                    if pair not in seen_pairs:
+                        seen_pairs.add(pair)
+                        new_pairs += 1
+                        r_new += 1
+        r_pct = 100.0 * r_new / r_total if r_total else 100.0
+        per_round_pct.append(r_pct)
+        per_round_counts.append({"new": r_new, "total": r_total})
+
+    overall_pct = 100.0 * new_pairs / total_pairs if total_pairs else 100.0
+    counts = {
+        "overall": {"new": new_pairs, "total": total_pairs},
+        "per_round": per_round_counts,
+    }
+    return overall_pct, per_round_pct, counts
+
+# ----------------------------
+# GUI
+# ----------------------------
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(f"{APP_NAME} — Random Group Generator")
+        root = QWidget()
+        self.setCentralWidget(root)
+        
+        # Create main layout with splitter for resizable panels
+        main_layout = QVBoxLayout(root)
+        splitter = QSplitter(Qt.Horizontal)
+        main_layout.addWidget(splitter)
+
+        # LEFT PANEL: classes + students (with attendance checkboxes)
+        left_widget = QWidget()
+        left = QVBoxLayout(left_widget)
+        classes_row = QHBoxLayout()
+        
+        # Create default class if none exist
+        create_default_class()
+        
+        self.class_combo = QComboBox()
+        self.class_combo.addItems(list_classes())
+        self.class_combo.currentTextChanged.connect(self.on_class_changed)
+
+        self.new_class_name = QLineEdit()
+        self.new_class_name.setPlaceholderText("New class name…")
+        btn_add_class = QPushButton("Add class")
+        btn_add_class.clicked.connect(self.add_class)
+
+        classes_row.addWidget(QLabel("Class:"))
+        classes_row.addWidget(self.class_combo, 2)
+        classes_row.addWidget(self.new_class_name, 2)
+        classes_row.addWidget(btn_add_class)
+
+        # Class management buttons row
+        class_mgmt_row = QHBoxLayout()
+        btn_del_class = QPushButton("Delete class")
+        btn_del_class.clicked.connect(self.delete_class)
+        btn_save_class = QPushButton("Save class list")
+        btn_save_class.clicked.connect(self.save_current_class)
+        
+        class_mgmt_row.addWidget(btn_del_class)
+        class_mgmt_row.addWidget(btn_save_class)
+        class_mgmt_row.addStretch()  # Push buttons to the left
+
+        self.student_list = QListWidget()
+        self.student_list.setSelectionMode(QListWidget.ExtendedSelection)
+
+        left.addLayout(classes_row)
+        left.addLayout(class_mgmt_row)
+        left.addWidget(QLabel("Students present:"))
+        left.addWidget(self.student_list, 1)
+
+        # RIGHT PANEL: controls + output
+        right_widget = QWidget()
+        right = QVBoxLayout(right_widget)
+        controls1 = QHBoxLayout()
+        self.groups_spin = QSpinBox()
+        self.groups_spin.setRange(1, 200)
+        self.groups_spin.setValue(4)
+        self.rounds_spin = QSpinBox()
+        self.rounds_spin.setRange(1, 50)
+        self.rounds_spin.setValue(2)
+        self.restarts_spin = QSpinBox()
+        self.restarts_spin.setRange(1, 10000)
+        self.restarts_spin.setValue(400)
+        self.seed_edit = QLineEdit()
+        self.seed_edit.setPlaceholderText("Seed (empty/None = random)")
+
+        controls1.addWidget(QLabel("Groups:"))
+        controls1.addWidget(self.groups_spin)
+        controls1.addWidget(QLabel("Rounds:"))
+        controls1.addWidget(self.rounds_spin)
+        controls1.addWidget(QLabel("Restarts:"))
+        controls1.addWidget(self.restarts_spin)
+        controls1.addWidget(QLabel("Seed:"))
+        controls1.addWidget(self.seed_edit, 1)
+
+        controls2 = QHBoxLayout()
+        btn_generate = QPushButton("Generate plan")
+        btn_generate.clicked.connect(self.generate_plan)
+        btn_export = QPushButton("Export plan to TXT")
+        btn_export.clicked.connect(self.export_plan)
+        btn_about = QPushButton("About")
+        btn_about.clicked.connect(self.show_about)
+        
+        # Font size selector
+        self.font_size_combo = QComboBox()
+        self.font_size_combo.addItems(["8", "9", "10", "11", "12", "13", "14", "15", "16", "18", "20", "24"])
+        self.font_size_combo.setCurrentText("10")  # Default font size
+        self.font_size_combo.currentTextChanged.connect(self.on_font_size_changed)
+        
+        controls2.addWidget(btn_generate)
+        controls2.addWidget(btn_export)
+        controls2.addWidget(btn_about)
+        controls2.addWidget(QLabel("Font size:"))
+        controls2.addWidget(self.font_size_combo)
+
+        self.output = QPlainTextEdit()
+        self.output.setReadOnly(True)
+        # Set larger font for output text
+        output_font = QFont()
+        output_font.setPointSize(11)  # Slightly larger for better readability
+        self.output.setFont(output_font)
+
+        right.addLayout(controls1)
+        right.addLayout(controls2)
+        right.addWidget(QLabel("Output:"))
+        right.addWidget(self.output, 1)
+
+        # Add both panels to the splitter
+        splitter.addWidget(left_widget)
+        splitter.addWidget(right_widget)
+        
+        # Set initial proportions (left panel : right panel = 1:1)
+        # You can adjust these numbers to change the default split
+        splitter.setSizes([400, 700])  # Left panel 400px, right panel 700px
+        
+        # Optional: Set minimum sizes so panels don't become too small
+        left_widget.setMinimumWidth(300)
+        right_widget.setMinimumWidth(400)
+
+        # BOTTOM BAR: Student management controls
+        students_row = QHBoxLayout()
+        self.student_input = QLineEdit()
+        self.student_input.setPlaceholderText("Add student…")
+        btn_add_student = QPushButton("Add")
+        btn_add_student.clicked.connect(self.add_student)
+        btn_remove_selected = QPushButton("Remove selected")
+        btn_remove_selected.clicked.connect(self.remove_selected)
+        btn_all = QPushButton("Check all")
+        btn_all.clicked.connect(self.check_all)
+        btn_none = QPushButton("Uncheck all")
+        btn_none.clicked.connect(self.uncheck_all)
+
+        students_row.addWidget(QLabel("Student actions:"))
+        students_row.addWidget(self.student_input, 2)
+        students_row.addWidget(btn_add_student)
+        students_row.addWidget(btn_remove_selected)
+        students_row.addWidget(btn_all)
+        students_row.addWidget(btn_none)
+        students_row.addStretch()  # Push buttons to the left
+        
+        # Add the bottom bar to the main layout
+        main_layout.addLayout(students_row)
+
+        # initial populate if any class exists
+        if self.class_combo.count() > 0:
+            self.on_class_changed(self.class_combo.currentText())
+
+        self.current_plan = None
+
+    # ---------- about dialog ----------
+    def show_about(self):
+        about_text = f"""
+<h2>GroupMaker</h2>
+<p><b>Version:</b> 1.0</p>
+<p><b>Author:</b> Magnus Simonsen / Claude Sonnet</p>
+<p><b>Description:</b> A simple desktop application for teachers to create random student groups with minimal pair repetition.</p>
+
+<h3>Features:</h3>
+<ul>
+<li>Add and manage multiple classes</li>
+<li>Save student lists automatically</li>
+<li>Mark attendance with checkboxes</li>
+<li>Generate balanced random groups</li>
+<li>Export group plans to text files</li>
+<li>Adjustable font sizes and resizable panels</li>
+</ul>
+
+<h3>License:</h3>
+<p><b>MIT License</b></p>
+<p>Copyright (c) 2025 Magnus Simonsen</p>
+
+<p style="font-size: 10px;">
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+<br><br>
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+<br><br>
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</p>
+
+<p><b>Built with:</b> Python and PySide6</p>
+<p><b>Repository:</b> <a href="https://github.com/magnussimonsen/StudentGroupMaker">https://github.com/magnussimonsen/StudentGroupMaker</a></p>
+        """
+        
+        msg = QMessageBox(self)
+        msg.setWindowTitle("About GroupMaker")
+        msg.setTextFormat(Qt.RichText)  # Enable HTML formatting
+        msg.setText(about_text)
+        msg.setIcon(QMessageBox.Information)  # Use standard information icon
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec()
+
+    # ---------- font size management ----------
+    def on_font_size_changed(self, size_text: str):
+        try:
+            size = int(size_text)
+            # Create new font with selected size
+            new_font = QFont()
+            new_font.setPointSize(size)
+            
+            # Apply to the entire application
+            QApplication.instance().setFont(new_font)
+            
+            # Also update the output text specifically (since it had custom font)
+            output_font = QFont()
+            output_font.setPointSize(size)
+            self.output.setFont(output_font)
+            
+        except ValueError:
+            pass  # Ignore invalid font sizes
+
+    # ---------- class management ----------
+    def on_class_changed(self, name: str):
+        self.student_list.clear()
+        if not name:
+            return
+        for s in load_class(name):
+            self._add_student_item(s, checked=True)
+
+    def add_class(self):
+        name = self.new_class_name.text().strip()
+        if not name:
+            QMessageBox.warning(self, "Class name", "Please enter a class name.")
+            return
+        if name in [self.class_combo.itemText(i) for i in range(self.class_combo.count())]:
+            QMessageBox.information(self, "Exists", "That class already exists.")
+        else:
+            save_class(name, [])
+            self.class_combo.addItem(name)
+            self.class_combo.setCurrentText(name)
+        self.new_class_name.clear()
+
+    def delete_class(self):
+        name = self.class_combo.currentText()
+        if not name:
+            return
+        if QMessageBox.question(self, "Delete class",
+                                f"Delete class '{name}'? This removes its JSON file.") == QMessageBox.Yes:
+            p = class_path(name)
+            if p.exists():
+                p.unlink()
+            idx = self.class_combo.currentIndex()
+            self.class_combo.removeItem(idx)
+            self.student_list.clear()
+
+    # ---------- student list ----------
+    def _add_student_item(self, s: str, checked=True):
+        item = QListWidgetItem(s)
+        item.setFlags(item.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+        item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
+        self.student_list.addItem(item)
+
+    def add_student(self):
+        s = self.student_input.text().strip()
+        if not s:
+            return
+        names = [self.student_list.item(i).text() for i in range(self.student_list.count())]
+        if s in names:
+            QMessageBox.information(self, "Duplicate", f"'{s}' is already in the list.")
+        else:
+            self._add_student_item(s, checked=True)
+        self.student_input.clear()
+
+    def remove_selected(self):
+        for item in self.student_list.selectedItems():
+            self.student_list.takeItem(self.student_list.row(item))
+
+    def check_all(self):
+        for i in range(self.student_list.count()):
+            self.student_list.item(i).setCheckState(Qt.Checked)
+
+    def uncheck_all(self):
+        for i in range(self.student_list.count()):
+            self.student_list.item(i).setCheckState(Qt.Unchecked)
+
+    # ---------- persistence ----------
+    def save_current_class(self):
+        name = self.class_combo.currentText()
+        if not name:
+            QMessageBox.warning(self, "No class", "Create/select a class first.")
+            return
+        students = [self.student_list.item(i).text() for i in range(self.student_list.count())]
+        save_class(name, students)
+        QMessageBox.information(self, "Saved", f"Saved {len(students)} students for '{name}'.")
+
+    # ---------- grouping ----------
+    def parse_seed(self, s: str):
+        t = (s or "").strip()
+        if t == "" or t.lower() == "none":
+            return None
+        try:
+            return int(t)
+        except ValueError:
+            return None
+
+    def present_students(self) -> list[str]:
+        out = []
+        for i in range(self.student_list.count()):
+            item = self.student_list.item(i)
+            if item.checkState() == Qt.Checked:
+                out.append(item.text())
+        return out
+
+    def generate_plan(self):
+        students = self.present_students()
+        n_groups = self.groups_spin.value()
+        n_rounds = self.rounds_spin.value()
+        restarts = self.restarts_spin.value()
+        seed = self.parse_seed(self.seed_edit.text())
+
+        self.output.clear()
+        if len(students) < n_groups:
+            self.output.appendPlainText(
+                f"Error: Not enough present students ({len(students)}) for {n_groups} groups."
+            )
+            return
+
+        plan = schedule_groups(
+            students, n_groups=n_groups, rounds=n_rounds, seed=seed, restarts=restarts
+        )
+        self.current_plan = plan
+
+        # Render plan
+        cname = self.class_combo.currentText() or "(unsaved class)"
+        self.output.appendPlainText(
+            f"Class: {cname} | Students present: {len(students)} | Groups/round: {n_groups} | Rounds: {n_rounds}\n"
+        )
+        for r, groups in enumerate(plan, start=1):
+            self.output.appendPlainText(f"-------- Round {r} --------")
+            for i, g in enumerate(groups, start=1):
+                self.output.appendPlainText(f"Group {i}: {', '.join(g)}")
+            self.output.appendPlainText("")
+
+        # Quality summary
+        overall, per_round, counts = schedule_quality(plan)
+        o = counts["overall"]
+        self.output.appendPlainText("=== QUALITY INDEX ===")
+        self.output.appendPlainText(f"Overall: {overall:6.2f}%  (new pairs: {o['new']} / {o['total']})")
+        for r, (pct, c) in enumerate(zip(per_round, counts["per_round"]), start=1):
+            self.output.appendPlainText(f"Round {r}: {pct:6.2f}%  (new pairs: {c['new']} / {c['total']})")
+
+    # ---------- export ----------
+    def export_plan(self):
+        if not self.current_plan:
+            QMessageBox.information(self, "No plan", "Generate a plan first.")
+            return
+        fname, _ = QFileDialog.getSaveFileName(self, "Export plan", str(DATA_DIR / "plan.txt"), "Text Files (*.txt)")
+        if not fname:
+            return
+        lines = []
+        cname = self.class_combo.currentText() or "(unsaved class)"
+        lines.append(f"Class: {cname}\n")
+        for r, groups in enumerate(self.current_plan, start=1):
+            lines.append(f"-------- Round {r} --------\n")
+            for i, g in enumerate(groups, start=1):
+                lines.append(f"Group {i}: {', '.join(g)}\n")
+            lines.append("\n")
+        Path(fname).write_text("".join(lines), encoding="utf-8")
+        QMessageBox.information(self, "Exported", f"Plan saved to:\n{fname}")
+
+def main():
+    app = QApplication(sys.argv)
+    
+    # Set initial application-wide font size (will be overridden by combo box)
+    font = QFont()
+    font.setPointSize(10)
+    app.setFont(font)
+    
+    w = MainWindow()
+    w.resize(1100, 650)
+    w.show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
