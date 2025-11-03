@@ -23,7 +23,11 @@ Requirements: Python 3.9+
 
 ```bash
 pip install PySide6
+<<<<<<< HEAD
 python group-maker.py
+=======
+python group_maker.py
+>>>>>>> 5c8bba1d3c9d745328a4e799d4477a90e598c452
 ```
 
 ---
@@ -34,7 +38,11 @@ To create a standalone app that runs without Python:
 
 ```bash
 pip install pyinstaller
+<<<<<<< HEAD
 pyinstaller --onefile --noconsole --name GroupMaker --collect-all PySide6 group-maker.py
+=======
+pyinstaller --onefile --noconsole --name GroupMaker --collect-all PySide6 group_maker.py
+>>>>>>> 5c8bba1d3c9d745328a4e799d4477a90e598c452
 ```
 
 This creates `dist/GroupMaker.exe`.
@@ -54,7 +62,10 @@ This creates `dist/GroupMaker.exe`.
 ## 📂 Data Storage
 
 Student lists are stored automatically in your home folder:
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5c8bba1d3c9d745328a4e799d4477a90e598c452
 ```
 ~/.GroupMaker/classes/
 ```
@@ -76,7 +87,11 @@ MIT License
 ```
 MIT License
 
+<<<<<<< HEAD
 Copyright (c) 2025 Magnus Simonsen
+=======
+Copyright (c) 2025 <Your Name>
+>>>>>>> 5c8bba1d3c9d745328a4e799d4477a90e598c452
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
