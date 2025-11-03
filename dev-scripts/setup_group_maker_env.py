@@ -33,9 +33,9 @@ import shutil
 try:
     from config import PROJECT_DIR, GROUP_MAKER_PATH, VENV_DIR_NAME
 except ImportError:
-    # Fallback if config.py is missing
+    # Fallback if config.py is missing (assume we're in dev-scripts)
     print("Warning: config.py not found, using defaults...")
-    PROJECT_DIR = Path(__file__).parent.resolve()
+    PROJECT_DIR = Path(__file__).parent.parent.resolve()
     GROUP_MAKER_PATH = PROJECT_DIR / "group-maker.py"
     VENV_DIR_NAME = ".venv"
 

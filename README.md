@@ -1,88 +1,109 @@
 # GroupMaker
 
-**GroupMaker** is a simple desktop app for teachers to create random student groups with minimal pair repetition.  
-Built with **Python** and **PySide6**, and easily packaged as a standalone Windows `.exe` (no Python required).
+**GroupMaker** is a desktop application for teachers to create random student groups with minimal pair repetition.  
+Built with **Python** and **PySide6**, packaged as a standalone executable (no Python installation required).
 
 ---
 
 ## 📸 Screenshot
 
-![GroupMaker App](dev-screenshots/GroupMaker-2025-11-03.png)
+![GroupMaker App](dev-screenshots/GroupMaker-2025-11-03-1.png)
+![GroupMaker App](dev-screenshots/GroupMaker-2025-11-03-2.png)
 
 ---
 
 ## ✨ Features
 
-- Add and manage multiple **classes**
-- Save student lists automatically as JSON files
-- Use **checkboxes** to mark attendance (only present students are grouped)
-- Adjustable **number of groups**, **rounds**, **restarts**, and **random seed**
-- View detailed **grouping results** and a **quality index**
-- **Export plans** as `.txt` files
-- Adjustable **font size** for better visibility
+- **Class Management**: Add and manage multiple classes with automatic JSON storage
+- **Attendance Tracking**: Use checkboxes to mark present students (only present students are grouped)
+- **Flexible Grouping**: Adjust number of groups, rounds, restarts, and random seed
+- **Quality Metrics**: View detailed grouping results with quality index
+- **Co-occurrence Matrix**: Visual heatmap showing how often students are paired together
+- **Export Plans**: Save grouping schedules as `.txt` files
+- **Dark/Light Mode**: Toggle between themes via View menu
+- **Adjustable Font Size**: 8pt-24pt options for better visibility
 
 ---
 
 ## 🚀 Run from Source
 
-Requirements: Python 3.9+
+### Prerequisites
+- Python 3.9+
+- Virtual environment (recommended)
 
+### Setup and Run
 ```bash
-pip install PySide6
-<<<<<<< HEAD
-python group-maker.py
-=======
-python group_maker.py
->>>>>>> 5c8bba1d3c9d745328a4e799d4477a90e598c452
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# .venv\Scripts\activate   # Windows
+
+# Install dependencies
+pip install -r dev-scripts/requirements.txt
+
+# Run application
+./run-dev.sh              # Linux/Mac
+python group-maker.py     # Windows
 ```
 
 ---
 
-## 📦 Build a Windows `.exe`
+## 📦 Build Standalone Executable
 
-To create a standalone app that runs without Python:
-
+### Linux
 ```bash
-pip install pyinstaller
-<<<<<<< HEAD
-pyinstaller --onefile --noconsole --name GroupMaker --collect-all PySide6 group-maker.py
-=======
-pyinstaller --onefile --noconsole --name GroupMaker --collect-all PySide6 group_maker.py
->>>>>>> 5c8bba1d3c9d745328a4e799d4477a90e598c452
+# Activate virtual environment
+source .venv/bin/activate
+
+# Build executable
+./build-wrapper.sh
+# or
+python dev-scripts/build.py
+
+# Output: dist/GroupMaker (~90MB)
 ```
 
-This creates `dist/GroupMaker.exe`.
+### Windows
+```bash
+# Activate virtual environment
+.venv\Scripts\activate
+
+# Build executable
+python dev-scripts/build.py
+
+# Output: dist\GroupMaker.exe
+```
+
+The build script automatically includes all dependencies (PySide6, matplotlib, etc.) using PyInstaller.
 
 ---
 
 ## 🖱️ How to Use
 
-1. Create or select a class.
-2. Add students and mark attendance with checkboxes.
-3. Choose number of groups and rounds.
-4. Click **Generate plan** to create random groups.
-5. Optionally export the plan to a text file.
+1. **Create/Select Class**: Use the class dropdown or "New Class" button
+2. **Add Students**: Enter student names and click "Add Student"
+3. **Mark Attendance**: Check boxes next to present students
+4. **Configure Groups**: Set number of groups, rounds, and restarts
+5. **Generate Plan**: Click "Generate plan" to create random groups
+6. **View Matrix**: Click "Show Co-occurrence Matrix" to see pairing patterns
+7. **Export**: Save the plan to a text file
 
 ---
 
 ## 📂 Data Storage
 
-Student lists are stored automatically in your home folder:
-<<<<<<< HEAD
-
-=======
->>>>>>> 5c8bba1d3c9d745328a4e799d4477a90e598c452
+Student lists are automatically saved as JSON files in:
 ```
 ~/.GroupMaker/classes/
 ```
 
 ---
 
-## 🧠 Algorithm Summary
+## 🧠 Algorithm
 
-- Students are grouped using a **greedy randomized heuristic**.
-- The algorithm minimizes repeated pairs between rounds.
-- Higher **restarts** improve pairing diversity but take longer.
+- Uses a **greedy randomized heuristic** to minimize repeated pairs
+- Higher **restarts** improve pairing diversity (but take longer)
+- **Quality index** shows pairing uniformity (lower is better)
 
 ---
 
@@ -90,14 +111,7 @@ Student lists are stored automatically in your home folder:
 
 MIT License
 
-```
-MIT License
-
-<<<<<<< HEAD
 Copyright (c) 2025 Magnus Simonsen
-=======
-Copyright (c) 2025 <Your Name>
->>>>>>> 5c8bba1d3c9d745328a4e799d4477a90e598c452
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -116,11 +130,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
 
 ---
 
 ## 🙌 Acknowledgements
 
-- **PySide6** (Qt for Python) for the GUI
-- **PyInstaller** for packaging
+- **PySide6** (Qt for Python) for the GUI framework
+- **matplotlib** for co-occurrence matrix visualization
+- **PyInstaller** for executable packaging
