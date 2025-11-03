@@ -202,19 +202,28 @@ class MainWindow(QMainWindow):
         self.new_class_name.setPlaceholderText("New class name…")
         btn_add_class = QPushButton("Add class")
         btn_add_class.clicked.connect(self.add_class)
-        btn_del_class = QPushButton("Delete class")
-        btn_del_class.clicked.connect(self.delete_class)
 
         classes_row.addWidget(QLabel("Class:"))
         classes_row.addWidget(self.class_combo, 2)
-        classes_row.addWidget(btn_del_class)
         classes_row.addWidget(self.new_class_name, 2)
         classes_row.addWidget(btn_add_class)
+
+        # Class management buttons row
+        class_mgmt_row = QHBoxLayout()
+        btn_del_class = QPushButton("Delete class")
+        btn_del_class.clicked.connect(self.delete_class)
+        btn_save_class = QPushButton("Save class list")
+        btn_save_class.clicked.connect(self.save_current_class)
+        
+        class_mgmt_row.addWidget(btn_del_class)
+        class_mgmt_row.addWidget(btn_save_class)
+        class_mgmt_row.addStretch()  # Push buttons to the left
 
         self.student_list = QListWidget()
         self.student_list.setSelectionMode(QListWidget.ExtendedSelection)
 
         left.addLayout(classes_row)
+        left.addLayout(class_mgmt_row)
         left.addWidget(QLabel("Students present:"))
         left.addWidget(self.student_list, 1)
 
@@ -246,8 +255,6 @@ class MainWindow(QMainWindow):
         controls2 = QHBoxLayout()
         btn_generate = QPushButton("Generate plan")
         btn_generate.clicked.connect(self.generate_plan)
-        btn_save_class = QPushButton("Save class list")
-        btn_save_class.clicked.connect(self.save_current_class)
         btn_export = QPushButton("Export plan to TXT")
         btn_export.clicked.connect(self.export_plan)
         btn_about = QPushButton("About")
@@ -260,7 +267,6 @@ class MainWindow(QMainWindow):
         self.font_size_combo.currentTextChanged.connect(self.on_font_size_changed)
         
         controls2.addWidget(btn_generate)
-        controls2.addWidget(btn_save_class)
         controls2.addWidget(btn_export)
         controls2.addWidget(btn_about)
         controls2.addWidget(QLabel("Font size:"))
