@@ -2,6 +2,12 @@
 
 Create random student groups with minimal pair repetition. Built with Python + PySide6.
 
+## Screenshot
+![GroupMaker App](dev-screenshots/GroupMaker-2025-11-04-1.png)
+![GroupMaker App](dev-screenshots/GroupMaker-2025-11-04-2.png)
+![GroupMaker App](dev-screenshots/GroupMaker-2025-11-04-3.png)
+
+
 ## Download
 - Latest releases (Windows + Linux):
 	- https://github.com/magnussimonsen/StudentGroupMaker/releases/latest
@@ -35,8 +41,6 @@ chmod +x GroupMaker-x86_64.AppImage
 - AppImage: `./app-image-scripts/build-appimage.sh` → `GroupMaker-x86_64.AppImage`
 - Windows: build with PyInstaller on Windows
 
-## Screenshot
-![GroupMaker App](dev-screenshots/GroupMaker-2025-11-04-1.png)
 
 ## License
 MIT
