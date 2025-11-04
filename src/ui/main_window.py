@@ -117,19 +117,32 @@ class MainWindow(QMainWindow):
         
         # Row 4: Main panels (horizontal splitter)
         splitter = QSplitter(Qt.Horizontal)
-        
+
         # Left side: Student list from class panel
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(QLabel("Students:"))
         left_layout.addWidget(self.class_panel.student_list)
-        
+        # Enforce a sensible minimum width so the list and names remain readable
+        left_widget.setMinimumWidth(260)
+
         # Right side: Output panel
         self.output_panel = OutputPanel()
+        # Enforce a sensible minimum width so the output doesn't collapse
+        self.output_panel.setMinimumWidth(420)
         
         splitter.addWidget(left_widget)
         splitter.addWidget(self.output_panel)
+
+        # Prevent panels from being collapsed to zero size with the splitter
+        splitter.setChildrenCollapsible(False)
+        try:
+            splitter.setCollapsible(0, False)
+            splitter.setCollapsible(1, False)
+        except AttributeError:
+            # Older Qt: setChildrenCollapsible covers the behavior
+            pass
         
         # Set initial splitter sizes (30% left, 70% right)
         splitter.setSizes([400, 800])

@@ -49,7 +49,19 @@ Result: `dist/GroupMaker.exe`
 
 ### Linux AppImage:
 ```
-# See app-image-scripts/ folder for AppImage building
+# 1) Activate venv and install deps
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# 2) Build the executable (produces dist/GroupMaker)
+./build-wrapper.sh
+
+# 3) Build the AppImage
+chmod +x app-image-scripts/appimagetool-x86_64.AppImage
+chmod +x app-image-scripts/build-appimage.sh
+./app-image-scripts/build-appimage.sh
+
+# Result: ./GroupMaker-x86_64.AppImage
 ```
 
 ## Alternative (No Virtual Environment)
