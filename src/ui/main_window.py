@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 
 from ..constants import APP_NAME, VERSION, REPOSITORY
 from ..constants.colors_and_styling import (
-    DARK_STYLESHEET, LIGHT_STYLESHEET, DarkTheme, Layout,
+    DARK_STYLESHEET, LIGHT_STYLESHEET, DarkTheme, LightTheme, Layout,
     get_dark_stylesheet, get_light_stylesheet
 )
 from ..core import schedule_groups, schedule_quality
@@ -386,9 +386,24 @@ class MainWindow(QMainWindow):
             # Apply dark theme stylesheet
             app.setStyleSheet(get_dark_stylesheet())
         else:
-            # Light mode - reset to default with consistent layout
-            app.setPalette(app.style().standardPalette())
-            # Apply light theme stylesheet for consistent layout
+            # Light mode - build a palette from LightTheme constants to avoid OS/Qt dark auto palette
+            palette = QPalette()
+            palette.setColor(QPalette.Window, QColor(LightTheme.MAIN_WINDOW_COLOR))
+            palette.setColor(QPalette.WindowText, QColor(LightTheme.TEXT_COLOR))
+            palette.setColor(QPalette.Base, QColor(LightTheme.BASE_COLOR))
+            palette.setColor(QPalette.AlternateBase, QColor(LightTheme.MAIN_WINDOW_COLOR))
+            palette.setColor(QPalette.ToolTipBase, QColor(LightTheme.TOOLTIP_BG_COLOR))
+            palette.setColor(QPalette.ToolTipText, QColor(LightTheme.TOOLTIP_TEXT_COLOR))
+            palette.setColor(QPalette.Text, QColor(LightTheme.TEXT_COLOR))
+            palette.setColor(QPalette.Button, QColor(LightTheme.BUTTON_BG_COLOR))
+            palette.setColor(QPalette.ButtonText, QColor(LightTheme.TEXT_COLOR))
+            palette.setColor(QPalette.BrightText, QColor(LightTheme.BRIGHT_TEXT_COLOR))
+            palette.setColor(QPalette.Link, QColor(LightTheme.LINK_COLOR))
+            palette.setColor(QPalette.Highlight, QColor(LightTheme.HIGHLIGHT_BG_COLOR))
+            palette.setColor(QPalette.HighlightedText, QColor(LightTheme.HIGHLIGHT_TEXT_COLOR))
+            app.setPalette(palette)
+
+            # Apply light theme stylesheet for consistent layout and selection visuals
             app.setStyleSheet(get_light_stylesheet())
     
     # Methods used by controls panel
