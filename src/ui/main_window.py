@@ -312,6 +312,16 @@ class MainWindow(QMainWindow):
         if not present:
             QMessageBox.warning(self, "No students", "No students are checked as present.")
             return
+
+        # Validate: cannot create more groups than students (would create empty groups)
+        if num_groups > len(present):
+            QMessageBox.warning(
+                self,
+                "Too many groups",
+                f"You selected {num_groups} groups but only {len(present)} student(s) are present.\n"
+                "Reduce the number of groups or add more students."
+            )
+            return
         
         # Generate the schedule
         schedule = schedule_groups(
