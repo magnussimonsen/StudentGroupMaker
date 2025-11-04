@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QFont
 
+from ...constants.colors_and_styling import Layout
 from ...models import export_plan, DATA_DIR
 from ...constants.start_values import (
     DEFAULT_STUDENTS_PER_GROUP, 
@@ -28,6 +29,8 @@ class ControlsPanel(QWidget):
     def _setup_ui(self):
         """Set up the UI layout."""
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)  # Use minimal margins
+        layout.setSpacing(5)  # Use standard spacing
         
         # First row: spinboxes
         spinbox_row = QHBoxLayout()
@@ -79,7 +82,7 @@ class ControlsPanel(QWidget):
         
         button_row.addSpacing(20)
         
-        btn_matrix = QPushButton("Show Co-occurrence Matrix")
+        btn_matrix = QPushButton("Show Co-occurrence Heatmap")
         btn_matrix.clicked.connect(self._on_show_matrix)
         button_row.addWidget(btn_matrix)
         
@@ -98,41 +101,10 @@ class ControlsPanel(QWidget):
     
     def _on_export(self):
         """Export the current plan to a text file."""
-        # Get schedule from parent (MainWindow)
-        main_window = self.window()
-        if not hasattr(main_window, 'get_last_schedule'):
-            return
-        
-        schedule = main_window.get_last_schedule()
-        if not schedule:
-            QMessageBox.information(self, "Nothing", "Generate groups first.")
-            return
-        
-        class_name = main_window.get_current_class_name()
-        if not class_name:
-            class_name = "groups"
-        
-        # Let user choose where to save
-        filename, _ = QFileDialog.getSaveFileName(
-            self, 
-            "Export plan", 
-            str(DATA_DIR / "plan.txt"), 
-            "Text Files (*.txt)"
-        )
-        if not filename:
-            return
-        
-        export_plan(filename, class_name, schedule)
-        QMessageBox.information(
-            self, "Exported",
-            f"Saved to:\n{filename}"
-        )
+        # This method is now handled directly in the main window
+        pass
     
     def _on_show_matrix(self):
         """Show the co-occurrence matrix."""
-        # Get schedule from parent (MainWindow)
-        main_window = self.window()
-        if not hasattr(main_window, 'show_cooccurrence_matrix'):
-            return
-        
-        main_window.show_cooccurrence_matrix()
+        # This method is now handled directly in the main window  
+        pass

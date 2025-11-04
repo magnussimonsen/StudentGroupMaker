@@ -75,8 +75,9 @@ def delete_class(name: str) -> bool:
 
 
 def create_default_class() -> None:
-    """Create a default sample class if no classes exist."""
-    if not list_classes():
+    """Create a default sample class if Math101 doesn't exist."""
+    existing_classes = list_classes()
+    if "Math101" not in existing_classes:
         save_class("Math101", DEFAULT_STUDENTS)
 
 
