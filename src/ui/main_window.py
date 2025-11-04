@@ -239,9 +239,95 @@ class MainWindow(QMainWindow):
             palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
             palette.setColor(QPalette.HighlightedText, Qt.black)
             app.setPalette(palette)
+            
+            # Add specific styles for dropdown menus (comboboxes) and menu bar
+            dark_style = """
+            QComboBox {
+                background-color: #353535;
+                color: white;
+                border: 1px solid #555555;
+                padding: 4px;
+                border-radius: 3px;
+            }
+            QComboBox:hover {
+                border: 1px solid #777777;
+            }
+            QComboBox::drop-down {
+                background-color: #353535;
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid white;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #353535;
+                color: white;
+                selection-background-color: #2a82da;
+                selection-color: black;
+                border: 1px solid #555555;
+            }
+            QComboBox QAbstractItemView::item {
+                padding: 4px;
+                background-color: #353535;
+                color: white;
+            }
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #2a82da;
+                color: black;
+            }
+            QComboBox QAbstractItemView::item:hover {
+                background-color: #404040;
+                color: white;
+            }
+            
+            QMenuBar {
+                background-color: #353535;
+                color: white;
+                border-bottom: 1px solid #555555;
+            }
+            QMenuBar::item {
+                background-color: transparent;
+                padding: 4px 8px;
+            }
+            QMenuBar::item:selected {
+                background-color: #404040;
+            }
+            QMenuBar::item:pressed {
+                background-color: #2a82da;
+            }
+            
+            QMenu {
+                background-color: #353535;
+                color: white;
+                border: 1px solid #555555;
+            }
+            QMenu::item {
+                padding: 6px 20px;
+                background-color: transparent;
+            }
+            QMenu::item:selected {
+                background-color: #2a82da;
+                color: black;
+            }
+            QMenu::item:hover {
+                background-color: #404040;
+            }
+            QMenu::separator {
+                height: 1px;
+                background-color: #555555;
+                margin: 2px 0px;
+            }
+            """
+            app.setStyleSheet(dark_style)
         else:
             # Light mode - reset to default
             app.setPalette(app.style().standardPalette())
+            app.setStyleSheet("")  # Clear any custom styles
     
     # Methods used by controls panel
     def get_output_text(self) -> str:
