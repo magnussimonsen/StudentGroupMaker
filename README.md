@@ -4,6 +4,11 @@
 Built with **Python** and **PySide6**, packaged as a standalone executable (no Python installation required).
 
 ---
+## 🔗 Latest Pre-Release (Windows and Linux)
+
+[Download v0.2](https://github.com/magnussimonsen/StudentGroupMaker/releases/tag/v0.2)
+
+---
 
 ## 📸 Screenshot
 
