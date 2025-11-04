@@ -6,7 +6,7 @@ Built with **Python** and **PySide6**, packaged as a standalone executable (no P
 ---
 ## 🔗 Latest Pre-Release (Windows and Linux)
 
-[Download v0.2](https://github.com/magnussimonsen/StudentGroupMaker/releases/tag/v0.2)
+[Download latest pre-release (Windows and Linux)v0.2](https://github.com/magnussimonsen/StudentGroupMaker/releases/tag/v0.2)
 
 ---
 
