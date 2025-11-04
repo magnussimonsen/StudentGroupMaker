@@ -1,7 +1,7 @@
 """Application constants and metadata."""
 
 APP_NAME = "GroupMaker"
-VERSION = "1.0"
+VERSION = "0.3"
 AUTHOR = "Magnus Simonsen / Claude Sonnet"
 AUTHOR_COPYRIGHT = "Magnus Simonsen"
 DESCRIPTION = "A simple desktop application for teachers to create random student groups with minimal pair repetition."
@@ -30,5 +30,11 @@ DEFAULT_STUDENTS = [
     "Emma Watson",
     "Dwayne Johnson",
     "Selena Gomez",
-    "Robert Downey Jr."
+    "Robert Downey Jr.",
+    "Ariana Grande",
+    "Chris Evans",
+    "Lauryn Hill",
+    "Julie Budet",
+    "Mark Ruffalo",
+    "Dua Lipa",
 ]
