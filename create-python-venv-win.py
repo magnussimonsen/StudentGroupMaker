@@ -3,7 +3,7 @@
 Simple script to create a Python virtual environment for Windows development.
 
 This script:
-1. Creates a .venv folder 
+1. Creates a .venv folder by typing: python create-python-venv-win.py
 2. Installs required dependencies
 3. That's it!
 
