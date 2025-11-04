@@ -1,0 +1,78 @@
+# GroupMaker Development Commands
+
+## Setup Commands (run once)
+
+### Windows:
+```
+python create-python-venv-win.py
+```
+
+### Linux:
+```
+python3 create-python-venv-linux.py
+```
+
+## Daily Development Commands
+
+### Windows:
+```
+# Activate virtual environment
+.venv\Scripts\activate
+
+# Run the application
+python group-maker.py
+
+# Deactivate when done
+deactivate
+```
+
+### Linux:
+```
+# Activate virtual environment
+source .venv/bin/activate
+
+# Run the application
+python3 group-maker.py
+
+# Deactivate when done
+deactivate
+```
+
+## Build Commands
+
+### Windows EXE:
+```
+pip install pyinstaller
+pyinstaller --onefile --noconsole --name GroupMaker group-maker.py
+```
+Result: `dist/GroupMaker.exe`
+
+### Linux AppImage:
+```
+# See app-image-scripts/ folder for AppImage building
+```
+
+## Alternative (No Virtual Environment)
+
+If you have PySide6 installed globally:
+
+### Windows:
+```
+python group-maker.py
+```
+
+### Linux:
+```
+python3 group-maker.py
+```
+
+## Dependencies
+
+Required packages:
+- PySide6
+
+Install globally:
+```
+pip install PySide6        # Windows
+pip3 install PySide6       # Linux
+```
