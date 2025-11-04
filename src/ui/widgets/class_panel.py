@@ -1,6 +1,7 @@
 """Class management panel (left panel)."""
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QListWidget, QListWidgetItem, QComboBox, QMessageBox
@@ -32,9 +33,22 @@ class ClassPanel(QWidget):
         self.class_combo.addItems(list_classes())
         self.class_combo.currentTextChanged.connect(self._on_class_changed)
         
+        # Set minimum width based on font size (like rem/em in CSS)
+        # fm = QFontMetrics(self.class_combo.font())
+        # char_width = fm.averageCharWidth()
+        # self.class_combo.setMinimumWidth(char_width * 15)  # ~15 characters wide
+        self.class_combo.setMinimumWidth(100)  # Set minimum width in pixels
+
+        
         self.new_class_name = QLineEdit()
         self.new_class_name.setPlaceholderText("New class name…")
         
+        # Set minimum width based on font size (like rem/em in CSS)
+        # fm = QFontMetrics(self.new_class_name.font())
+        # char_width = fm.averageCharWidth()
+        # self.new_class_name.setMinimumWidth(char_width * 20)  # ~20 characters wide
+        self.new_class_name.setMinimumWidth(180)  # Set minimum width in pixels
+
         btn_add_class = QPushButton("Add class")
         btn_add_class.clicked.connect(self._add_class)
         
@@ -132,9 +146,37 @@ class ClassPanel(QWidget):
             QMessageBox.warning(self, "No class", "Create/select a class first.")
             return
         
+        # Sort students alphabetically by first name before saving (and update UI order)
+        self._sort_students_by_first_name()
+
         students = self.get_all_students()
         save_class(name, students)
         QMessageBox.information(self, "Saved", f"Saved {len(students)} students for '{name}'.")
+
+    def _sort_students_by_first_name(self):
+        """Sort the student list by first name (case-insensitive) and update the UI order.
+
+        Preserves each item's checked state. Sorting key is the first whitespace-separated token.
+        """
+        items = []
+        for i in range(self.student_list.count()):
+            item = self.student_list.item(i)
+            name = item.text().strip()
+            checked = (item.checkState() == Qt.Checked)
+            items.append((name, checked))
+
+        # Sort by first token (first name), case-insensitive; tie-breaker on full name
+        def sort_key(entry):
+            name = entry[0]
+            first = name.split()[0] if name else ""
+            return (first.casefold(), name.casefold())
+
+        items.sort(key=sort_key)
+
+        # Rebuild list to reflect sorted order while preserving check states
+        self.student_list.clear()
+        for name, checked in items:
+            self._add_student_item(name, checked=checked)
     
     def _add_student(self):
         """Add a student to the list."""
@@ -164,8 +206,32 @@ class ClassPanel(QWidget):
     
     def remove_selected_students(self):
         """Remove selected students (public method for bottom bar)."""
-        for item in self.student_list.selectedItems():
-            self.student_list.takeItem(self.student_list.row(item))
+        selected_items = self.student_list.selectedItems()
+        
+        if not selected_items:
+            return
+        
+        # Build confirmation message with student names
+        if len(selected_items) == 1:
+            student_name = selected_items[0].text()
+            message = f"Are you sure you want to remove '{student_name}'?"
+        else:
+            student_names = [item.text() for item in selected_items]
+            names_list = "', '".join(student_names)
+            message = f"Are you sure you want to remove these {len(selected_items)} students:\n'{names_list}'?"
+        
+        # Show confirmation dialog
+        reply = QMessageBox.question(
+            self,
+            "Remove student" if len(selected_items) == 1 else "Remove students",
+            message,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            for item in selected_items:
+                self.student_list.takeItem(self.student_list.row(item))
     
     def check_all_students(self):
         """Check all students (public method for bottom bar)."""

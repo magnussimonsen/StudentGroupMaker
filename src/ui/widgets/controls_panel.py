@@ -59,10 +59,14 @@ class ControlsPanel(QWidget):
         
         spinbox_row.addSpacing(10)
         
-        spinbox_row.addWidget(QLabel("Seed:"))
+        spinbox_row.addWidget(QLabel("Seed (0 = random):"))
         self.random_seed = QSpinBox()
         self.random_seed.setRange(0, 999999)
         self.random_seed.setValue(0)
+        # Help users understand that 0 means totally random
+        self.random_seed.setToolTip("0 = totally random; any other number reproduces the same grouping")
+        # Show a friendly label when at the minimum value
+        self.random_seed.setSpecialValueText("Random")
         spinbox_row.addWidget(self.random_seed)
         
         spinbox_row.addStretch()
