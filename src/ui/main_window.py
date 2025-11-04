@@ -194,7 +194,7 @@ class MainWindow(QMainWindow):
         lines.append(f"Groups per round: {num_groups}")
         lines.append(f"Students per group: {students_per_group}")
         lines.append(f"Rounds: {num_rounds}")
-        lines.append(f"Quality: {overall_pct:.1f}% of new pairs")
+        lines.append(f"Quality: {overall_pct:.1f}% unique pairs")
         lines.append(f"Random seed: {seed}")
         lines.append("")
         
