@@ -199,6 +199,24 @@ QComboBox QAbstractItemView::item:hover {{
     color: {DarkTheme.TEXT_COLOR_HOVER};
 }}
 
+/* Ensure consistent selection highlight across list/tree/table views */
+QAbstractItemView {{
+    selection-background-color: {DarkTheme.HIGHLIGHT_BG_COLOR};
+    selection-color: {DarkTheme.HIGHLIGHT_TEXT_COLOR};
+}}
+QAbstractItemView::item:selected:active {{
+    background-color: {DarkTheme.HIGHLIGHT_BG_COLOR};
+    color: {DarkTheme.HIGHLIGHT_TEXT_COLOR};
+}}
+QAbstractItemView::item:selected:!active {{
+    background-color: {DarkTheme.HIGHLIGHT_BG_COLOR};
+    color: {DarkTheme.HIGHLIGHT_TEXT_COLOR};
+}}
+QListWidget::item:hover, QListView::item:hover, QTreeView::item:hover {{
+    background-color: {DarkTheme.HOVER_BG_COLOR};
+    color: {DarkTheme.TEXT_COLOR_HOVER};
+}}
+
 QMenuBar {{
     background-color: {DarkTheme.MAIN_WINDOW_COLOR};
     color: {DarkTheme.TEXT_COLOR};
@@ -250,6 +268,7 @@ QMenu::separator {{
 
 QSplitter::handle {{
     background-color: {DarkTheme.SPLITTER_HANDLE_COLOR};
+    image: none;  /* Ensure Windows style doesn't paint over background */
 }}
 QSplitter::handle:horizontal {{
     width: 8px;
@@ -257,8 +276,13 @@ QSplitter::handle:horizontal {{
 QSplitter::handle:vertical {{
     height: 8px;
 }}
-QSplitter::handle:hover {{
+QSplitter::handle:hover,
+QSplitter::handle:horizontal:hover,
+QSplitter::handle:vertical:hover {{
     background-color: {DarkTheme.SPLITTER_HANDLE_COLOR_HOVER};
+}}
+QSplitter::handle:pressed {{
+    background-color: {DarkTheme.HOVER_BG_COLOR};
 }}
 """
 
@@ -338,6 +362,24 @@ QComboBox QAbstractItemView::item:hover {{
     color: {LightTheme.TEXT_COLOR_HOVER};
 }}
 
+/* Ensure consistent selection highlight across list/tree/table views */
+QAbstractItemView {{
+    selection-background-color: {LightTheme.HIGHLIGHT_BG_COLOR};
+    selection-color: {LightTheme.HIGHLIGHT_TEXT_COLOR};
+}}
+QAbstractItemView::item:selected:active {{
+    background-color: {LightTheme.HIGHLIGHT_BG_COLOR};
+    color: {LightTheme.HIGHLIGHT_TEXT_COLOR};
+}}
+QAbstractItemView::item:selected:!active {{
+    background-color: {LightTheme.HIGHLIGHT_BG_COLOR};
+    color: {LightTheme.HIGHLIGHT_TEXT_COLOR};
+}}
+QListWidget::item:hover, QListView::item:hover, QTreeView::item:hover {{
+    background-color: {LightTheme.HOVER_BG_COLOR};
+    color: {LightTheme.TEXT_COLOR_HOVER};
+}}
+
 QMenuBar {{
     background-color: {LightTheme.MAIN_WINDOW_COLOR};
     color: {LightTheme.TEXT_COLOR};
@@ -392,6 +434,7 @@ QMenu::separator {{
 
 QSplitter::handle {{
     background-color: {LightTheme.SPLITTER_HANDLE_COLOR};
+    image: none;  /* Ensure Windows style doesn't paint over background */
 }}
 QSplitter::handle:horizontal {{
     width: 8px;
@@ -399,8 +442,13 @@ QSplitter::handle:horizontal {{
 QSplitter::handle:vertical {{
     height: 8px;
 }}
-QSplitter::handle:hover {{
+QSplitter::handle:hover,
+QSplitter::handle:horizontal:hover,
+QSplitter::handle:vertical:hover {{
     background-color: {LightTheme.SPLITTER_HANDLE_COLOR_HOVER};
+}}
+QSplitter::handle:pressed {{
+    background-color: {LightTheme.HOVER_BG_COLOR};
 }}
 """
 

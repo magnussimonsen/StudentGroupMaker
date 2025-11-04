@@ -42,8 +42,14 @@ deactivate
 
 ### Windows EXE:
 ```
-pip install pyinstaller
-pyinstaller --onefile --noconsole --name GroupMaker group-maker.py
+First create python virtual environment using command: python create-python-venv-win.py
+Then from the venv: pip install pyinstaller
+.\.venv\Scripts\pyinstaller.exe .\GroupMaker.spec
+
+or 
+
+.\.venv\Scripts\pyinstaller.exe --onefile --noconsole --name GroupMaker --icon ".\src\icons\icon.ico" --add-data ".\src\icons\icon.ico;src\icons" --add-data ".\src\icons\icon.png;src\icons" ".\group-maker.py"
+
 ```
 Result: `dist/GroupMaker.exe`
 
