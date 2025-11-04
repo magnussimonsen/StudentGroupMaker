@@ -70,9 +70,31 @@ python3 group-maker.py
 
 Required packages:
 - PySide6
+- matplotlib
 
-Install globally:
+Install globally or inside the virtual environment:
 ```
-pip install PySide6        # Windows
-pip3 install PySide6       # Linux
+# Install all runtime dependencies from requirements.txt
+pip install -r requirements.txt
+
+# Or install individual missing packages
+pip install PySide6 matplotlib
+# If you're on Linux and need pip3:
+pip3 install -r requirements.txt
+```
+
+If you see an error like "ModuleNotFoundError: No module named 'matplotlib'", run the above install command inside the active `.venv` (Windows example below).
+
+### Quick fix example (Windows, inside project root):
+```
+.venv\\Scripts\\activate
+pip install -r requirements.txt
+python group-maker.py
+```
+
+### Quick fix example (Linux):
+```
+source .venv/bin/activate
+pip3 install -r requirements.txt
+python3 group-maker.py
 ```

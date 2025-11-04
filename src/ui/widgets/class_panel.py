@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QPushButton, QListWidget, QListWidgetItem, QComboBox, QMessageBox
 )
 
+from ...constants.colors_and_styling import Layout
 from ...models import load_class, save_class, list_classes, delete_class
 
 
@@ -22,6 +23,8 @@ class ClassPanel(QWidget):
     def _setup_ui(self):
         """Set up the UI layout."""
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)  # Use minimal margins
+        layout.setSpacing(5)  # Use standard spacing
         
         # Class selection row
         classes_row = QHBoxLayout()
@@ -59,7 +62,7 @@ class ClassPanel(QWidget):
         # Add to main layout
         layout.addLayout(classes_row)
         layout.addLayout(class_mgmt_row)
-        layout.addWidget(QLabel("Students present:"))
+        layout.addWidget(QLabel("Students in class:"))
         layout.addWidget(self.student_list, 1)
     
     def _load_initial_class(self):

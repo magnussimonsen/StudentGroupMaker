@@ -22,9 +22,9 @@ def main():
     subprocess.run([sys.executable, "-m", "venv", ".venv"], check=True)
     
     # Install dependencies
-    print("Installing PySide6...")
+    print("Installing dependencies from requirements.txt...")
     venv_python = Path(".venv") / "bin" / "python"
-    subprocess.run([str(venv_python), "-m", "pip", "install", "PySide6"], check=True)
+    subprocess.run([str(venv_python), "-m", "pip", "install", "-r", "requirements.txt"], check=True)
     
     print("✅ Virtual environment created successfully!")
     print("📝 To use it:")

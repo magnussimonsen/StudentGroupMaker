@@ -3,6 +3,8 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPlainTextEdit
 from PySide6.QtGui import QFont
 
+from ...constants.colors_and_styling import Layout
+
 
 class OutputPanel(QWidget):
     """Panel for displaying generated group plans."""
@@ -14,8 +16,10 @@ class OutputPanel(QWidget):
     def _setup_ui(self):
         """Set up the UI layout."""
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)  # Use minimal margins
+        layout.setSpacing(5)  # Use standard spacing
         
-        layout.addWidget(QLabel("<b>Output:</b>"))
+        layout.addWidget(QLabel("Output:"))
         
         self.output_text = QPlainTextEdit()
         self.output_text.setReadOnly(True)

@@ -2,11 +2,15 @@
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-    QSplitter, QMessageBox, QDialog, QPushButton
+    QSplitter, QMessageBox, QDialog, QPushButton, QLabel
 )
 from PySide6.QtCore import Qt
 
 from ..constants import APP_NAME, VERSION, REPOSITORY
+from ..constants.colors_and_styling import (
+    DARK_STYLESHEET, LIGHT_STYLESHEET, DarkTheme, Layout,
+    get_dark_stylesheet, get_light_stylesheet
+)
 from ..core import schedule_groups, schedule_quality
 from .widgets import ClassPanel, ControlsPanel, OutputPanel
 from .dialogs import show_about_dialog
@@ -23,8 +27,14 @@ class MainWindow(QMainWindow):
         # Store the last generated schedule for matrix display
         self.last_schedule = None
         
+        # Track current theme state
+        self.current_theme = "light"
+        
         self._setup_ui()
         self._setup_menu()
+        
+        # Initialize with light theme styling
+        self._set_theme("light")
     
     def _setup_ui(self):
         """Set up the main UI layout."""
@@ -32,40 +42,101 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
         
         layout = QVBoxLayout(central)
+        layout.setContentsMargins(10, 10, 10, 10)  # Use standard margins
+        layout.setSpacing(10)  # Use standard spacing
         
-        # Create splitter with left and right panels
-        splitter = QSplitter(Qt.Horizontal)
-        
-        # Left panel (class management)
+        # Create separate panels to extract controls from
         self.class_panel = ClassPanel()
         self.class_panel.class_changed.connect(self._on_class_changed)
-        
-        # Right side container
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Controls panel (now at top)
         self.controls_panel = ControlsPanel()
         self.controls_panel.generate_requested.connect(self._generate_groups)
         
-        # Output panel (below controls)
+        # Row 2: Main controls row
+        controls_row = QHBoxLayout()
+        controls_row.setSpacing(10)  # Use standard spacing
+        
+        # Class selector and new class controls
+        controls_row.addWidget(QLabel("Class:"))
+        controls_row.addWidget(self.class_panel.class_combo)
+        controls_row.addWidget(self.class_panel.new_class_name)
+        
+        # Create new add class button since we need to extract it
+        self.add_class_btn = QPushButton("Add class")
+        self.add_class_btn.clicked.connect(self.class_panel._add_class)
+        controls_row.addWidget(self.add_class_btn)
+        
+        # Add separator
+        controls_row.addSpacing(20)  # Use standard section spacing
+        
+        # Students per group selector
+        controls_row.addWidget(QLabel("Students/group:"))
+        controls_row.addWidget(self.controls_panel.num_students)
+        
+        # Groups selector
+        controls_row.addWidget(QLabel("Groups:"))
+        controls_row.addWidget(self.controls_panel.num_groups)
+        
+        # Rounds selector  
+        controls_row.addWidget(QLabel("Rounds:"))
+        controls_row.addWidget(self.controls_panel.num_rounds)
+        
+        # Seed selector
+        controls_row.addWidget(QLabel("Seed:"))
+        controls_row.addWidget(self.controls_panel.random_seed)
+        
+        controls_row.addStretch()  # Push everything to the left
+        layout.addLayout(controls_row)
+        
+        # Row 3: Action buttons row
+        buttons_row = QHBoxLayout()
+        buttons_row.setSpacing(10)  # Use standard spacing
+        
+        # Create new buttons since we need to extract them from panels
+        self.delete_class_btn = QPushButton("Delete class")
+        self.delete_class_btn.clicked.connect(self.class_panel._delete_class)
+        buttons_row.addWidget(self.delete_class_btn)
+        
+        self.save_class_btn = QPushButton("Save class list")
+        self.save_class_btn.clicked.connect(self.class_panel._save_class)
+        buttons_row.addWidget(self.save_class_btn)
+        
+        self.generate_btn = QPushButton("Generate groups")
+        self.generate_btn.clicked.connect(self._on_generate_clicked)
+        buttons_row.addWidget(self.generate_btn)
+        
+        self.export_btn = QPushButton("Export plan as file")
+        self.export_btn.clicked.connect(self._on_export_clicked)
+        buttons_row.addWidget(self.export_btn)
+        
+        self.heatmap_btn = QPushButton("Show Co-occurrence Heatmap")
+        self.heatmap_btn.clicked.connect(self._on_heatmap_clicked)
+        buttons_row.addWidget(self.heatmap_btn)
+        
+        buttons_row.addStretch()  # Push everything to the left
+        layout.addLayout(buttons_row)
+        
+        # Row 4: Main panels (horizontal splitter)
+        splitter = QSplitter(Qt.Horizontal)
+        
+        # Left side: Student list from class panel
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.addWidget(QLabel("Students:"))
+        left_layout.addWidget(self.class_panel.student_list)
+        
+        # Right side: Output panel
         self.output_panel = OutputPanel()
         
-        # Add controls and output to right side vertically
-        right_layout.addWidget(self.controls_panel)
-        right_layout.addWidget(self.output_panel, 1)
-        
-        # Add panels to splitter
-        splitter.addWidget(self.class_panel)
-        splitter.addWidget(right_widget)
+        splitter.addWidget(left_widget)
+        splitter.addWidget(self.output_panel)
         
         # Set initial splitter sizes (30% left, 70% right)
-        splitter.setSizes([500, 700])
+        splitter.setSizes([400, 800])
         
-        layout.addWidget(splitter, 1)
+        layout.addWidget(splitter, 1)  # This takes up remaining space
         
-        # Bottom bar for student actions (spans entire width)
+        # Row 5: Student actions bar (spans entire width)
         self._create_student_actions_bar(layout)
     
     def _create_student_actions_bar(self, parent_layout):
@@ -80,9 +151,6 @@ class MainWindow(QMainWindow):
         btn_add_student = QPushButton("Add")
         btn_add_student.clicked.connect(self._add_student)
         
-        btn_remove_selected = QPushButton("Remove selected")
-        btn_remove_selected.clicked.connect(self._remove_selected)
-        
         btn_all = QPushButton("Check all")
         btn_all.clicked.connect(self._check_all)
         
@@ -92,7 +160,6 @@ class MainWindow(QMainWindow):
         students_row.addWidget(QLabel("Student actions:"))
         students_row.addWidget(self.student_input, 2)
         students_row.addWidget(btn_add_student)
-        students_row.addWidget(btn_remove_selected)
         students_row.addWidget(btn_all)
         students_row.addWidget(btn_none)
         students_row.addStretch()
@@ -104,10 +171,6 @@ class MainWindow(QMainWindow):
         self.class_panel.add_student_from_input(self.student_input.text())
         self.student_input.clear()
     
-    def _remove_selected(self):
-        """Remove selected students via the bottom bar."""
-        self.class_panel.remove_selected_students()
-    
     def _check_all(self):
         """Check all students via the bottom bar."""
         self.class_panel.check_all_students()
@@ -115,6 +178,50 @@ class MainWindow(QMainWindow):
     def _uncheck_all(self):
         """Uncheck all students via the bottom bar."""
         self.class_panel.uncheck_all_students()
+    
+    def _on_export_clicked(self):
+        """Export the current plan to a text file."""
+        schedule = self.get_last_schedule()
+        if not schedule:
+            QMessageBox.information(self, "Nothing", "Generate groups first.")
+            return
+        
+        class_name = self.get_current_class_name()
+        if not class_name:
+            class_name = "groups"
+        
+        # Let user choose where to save
+        from ..models import DATA_DIR, export_plan
+        from PySide6.QtWidgets import QFileDialog
+        
+        filename, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Export plan", 
+            str(DATA_DIR / "plan.txt"), 
+            "Text Files (*.txt)"
+        )
+        if not filename:
+            return
+        
+        export_plan(filename, class_name, schedule)
+        QMessageBox.information(
+            self, "Exported",
+            f"Saved to:\n{filename}"
+        )
+    
+    def _on_heatmap_clicked(self):
+        """Show the co-occurrence matrix."""
+        self.show_cooccurrence_matrix()
+    
+    def _on_generate_clicked(self):
+        """Handle generate button click."""
+        # Get values from controls panel and generate groups
+        students_per_group = self.controls_panel.num_students.value()
+        num_groups = self.controls_panel.num_groups.value()
+        num_rounds = self.controls_panel.num_rounds.value()
+        seed = self.controls_panel.random_seed.value()
+        
+        self._generate_groups(students_per_group, num_groups, num_rounds, seed)
     
     def _setup_menu(self):
         """Set up the menu bar."""
@@ -156,10 +263,20 @@ class MainWindow(QMainWindow):
         from PySide6.QtWidgets import QApplication
         from PySide6.QtGui import QFont
         
+        # Update the Layout constant
+        Layout.FONT_SIZE = size
+        
         # Set application-wide font
         font = QFont()
         font.setPointSize(size)
         QApplication.instance().setFont(font)
+        
+        # Regenerate and reapply stylesheets with new font size
+        app = QApplication.instance()
+        if self.current_theme == "dark":
+            app.setStyleSheet(get_dark_stylesheet())
+        else:
+            app.setStyleSheet(get_light_stylesheet())
         
         # Also explicitly update output panel
         self.output_panel.set_font_size(size)
@@ -220,114 +337,36 @@ class MainWindow(QMainWindow):
         from PySide6.QtGui import QPalette, QColor
         from PySide6.QtCore import Qt
         
+        # Update current theme state
+        self.current_theme = theme
+        
         app = QApplication.instance()
         
         if theme == "dark":
-            # Dark mode colors
+            # Dark mode colors using constants
             palette = QPalette()
-            palette.setColor(QPalette.Window, QColor(53, 53, 53))
-            palette.setColor(QPalette.WindowText, Qt.white)
-            palette.setColor(QPalette.Base, QColor(35, 35, 35))
-            palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-            palette.setColor(QPalette.ToolTipBase, QColor(25, 25, 25))
-            palette.setColor(QPalette.ToolTipText, Qt.white)
-            palette.setColor(QPalette.Text, Qt.white)
-            palette.setColor(QPalette.Button, QColor(53, 53, 53))
-            palette.setColor(QPalette.ButtonText, Qt.white)
-            palette.setColor(QPalette.BrightText, Qt.red)
-            palette.setColor(QPalette.Link, QColor(42, 130, 218))
-            palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-            palette.setColor(QPalette.HighlightedText, Qt.black)
+            palette.setColor(QPalette.Window, QColor(DarkTheme.WINDOW))
+            palette.setColor(QPalette.WindowText, QColor(DarkTheme.WINDOW_TEXT))
+            palette.setColor(QPalette.Base, QColor(DarkTheme.BASE))
+            palette.setColor(QPalette.AlternateBase, QColor(DarkTheme.ALTERNATE_BASE))
+            palette.setColor(QPalette.ToolTipBase, QColor(DarkTheme.TOOLTIP_BASE))
+            palette.setColor(QPalette.ToolTipText, QColor(DarkTheme.TOOLTIP_TEXT))
+            palette.setColor(QPalette.Text, QColor(DarkTheme.TEXT))
+            palette.setColor(QPalette.Button, QColor(DarkTheme.BUTTON))
+            palette.setColor(QPalette.ButtonText, QColor(DarkTheme.BUTTON_TEXT))
+            palette.setColor(QPalette.BrightText, QColor(DarkTheme.BRIGHT_TEXT))
+            palette.setColor(QPalette.Link, QColor(DarkTheme.LINK))
+            palette.setColor(QPalette.Highlight, QColor(DarkTheme.HIGHLIGHT))
+            palette.setColor(QPalette.HighlightedText, QColor(DarkTheme.HIGHLIGHTED_TEXT))
             app.setPalette(palette)
             
-            # Add specific styles for dropdown menus (comboboxes) and menu bar
-            dark_style = """
-            QComboBox {
-                background-color: #353535;
-                color: white;
-                border: 1px solid #555555;
-                padding: 4px;
-                border-radius: 3px;
-            }
-            QComboBox:hover {
-                border: 1px solid #777777;
-            }
-            QComboBox::drop-down {
-                background-color: #353535;
-                border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid white;
-                margin-right: 5px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #353535;
-                color: white;
-                selection-background-color: #2a82da;
-                selection-color: black;
-                border: 1px solid #555555;
-            }
-            QComboBox QAbstractItemView::item {
-                padding: 4px;
-                background-color: #353535;
-                color: white;
-            }
-            QComboBox QAbstractItemView::item:selected {
-                background-color: #2a82da;
-                color: black;
-            }
-            QComboBox QAbstractItemView::item:hover {
-                background-color: #404040;
-                color: white;
-            }
-            
-            QMenuBar {
-                background-color: #353535;
-                color: white;
-                border-bottom: 1px solid #555555;
-            }
-            QMenuBar::item {
-                background-color: transparent;
-                padding: 4px 8px;
-            }
-            QMenuBar::item:selected {
-                background-color: #404040;
-            }
-            QMenuBar::item:pressed {
-                background-color: #2a82da;
-            }
-            
-            QMenu {
-                background-color: #353535;
-                color: white;
-                border: 1px solid #555555;
-            }
-            QMenu::item {
-                padding: 6px 20px;
-                background-color: transparent;
-            }
-            QMenu::item:selected {
-                background-color: #2a82da;
-                color: black;
-            }
-            QMenu::item:hover {
-                background-color: #404040;
-            }
-            QMenu::separator {
-                height: 1px;
-                background-color: #555555;
-                margin: 2px 0px;
-            }
-            """
-            app.setStyleSheet(dark_style)
+            # Apply dark theme stylesheet
+            app.setStyleSheet(get_dark_stylesheet())
         else:
-            # Light mode - reset to default
+            # Light mode - reset to default with consistent layout
             app.setPalette(app.style().standardPalette())
-            app.setStyleSheet("")  # Clear any custom styles
+            # Apply light theme stylesheet for consistent layout
+            app.setStyleSheet(get_light_stylesheet())
     
     # Methods used by controls panel
     def get_output_text(self) -> str:
