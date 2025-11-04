@@ -8,89 +8,87 @@ the application for both light and dark themes.
 # Dark Theme Colors
 class DarkTheme:
     """Dark theme color constants."""
-    # Main background colors
-    WINDOW = "#353535"          # Main window background
-    BASE = "#232323"            # Input fields, text areas
-    ALTERNATE_BASE = "#353535"  # Alternate background
+     
+    # Base color palette
+    BASE_COLOR = '#353535'            # Input fields, text areas
+    MAIN_WINDOW_COLOR = '#2a2a2a'     # Main window background
+    BUTTON_BG_COLOR = '#3d3d3d'       # Buttons
+    BORDER_COLOR = '#555555'          # Borders
     
     # Text colors
-    TEXT = "#ffffff"            # Primary text
-    WINDOW_TEXT = "#ffffff"     # Window text
-    BUTTON_TEXT = "#ffffff"     # Button text
-    
-    # Interactive elements
-    BUTTON = "#353535"          # Button background
-    BUTTON_HOVER = "#2a82da"     # Button hover state
-    HIGHLIGHT = "#2a82da"       # Selection/highlight color
-    HIGHLIGHTED_TEXT = "#ffffff" # Text on highlighted background
+    TEXT_COLOR = "#ffffff"            # Primary text
+    TEXT_PLACEHOLDER_COLOR = "#aaaaaa"  # Placeholder text
     
     # Universal hover color (used for all interactive elements)
-    HOVER_BG = "#2a82da"        # Universal hover background color
-    HOVER_TEXT = "#ffffff"      # Universal hover text color
+    HOVER_BG_COLOR = "#007cda"         # Universal hover background color
+    TEXT_COLOR_HOVER = "#ffffff"      # Universal hover text color
+    BORDER_COLOR_HOVER = "#005393"    # Hover state borders
     
-    # Borders and lines
-    BORDER = "#555555"          # Standard borders
-    BORDER_HOVER = "#2a82da"    # Hover state borders
-    SEPARATOR = "#555555"       # Menu separators
-    
-    # Dropdown specific colors (deprecated - use HOVER_BG/HOVER_TEXT instead)
-    DROPDOWN_BG = "#2a2a2a"     # Dropdown background (darker than window)
-    DROPDOWN_ITEM_HOVER = "#2a82da"  # Dropdown item hover (use HOVER_BG instead)
-    DROPDOWN_HOVER_TEXT = "#ffffff"  # Text color when hovering over dropdown items (use HOVER_TEXT instead)
-    DROPDOWN_BORDER = "#666666"      # Dropdown borders
-    
-    # Menu specific colors (deprecated - use HOVER_TEXT instead)
-    MENU_HOVER_TEXT = "#ffffff"      # Text color when hovering over menu items (use HOVER_TEXT instead)
-    
-    # Special colors
-    BRIGHT_TEXT = "#ff0000"     # Error/warning text
-    LINK = "#2a82da"           # Links
-    TOOLTIP_BASE = "#191919"    # Tooltip background
-    TOOLTIP_TEXT = "#ffffff"    # Tooltip text
+    # Button pressed/active state
+    BUTTON_PRESSED_BG_COLOR = "#1e6bb8"  # Button pressed/active background (darker blue)
+    BUTTON_PRESSED_TEXT_COLOR = "#ffffff"  # Button pressed/active text
 
+    # Panel resize handle (QSplitter handle)
+    SPLITTER_HANDLE_COLOR = MAIN_WINDOW_COLOR  # Color of the splitter handle
+    SPLITTER_HANDLE_COLOR_HOVER = HOVER_BG_COLOR  # Color of the splitter handle on hover
+
+    # Special purpose colors
+    HIGHLIGHT_BG_COLOR = "#2a82da"    # Selection/highlight background
+    HIGHLIGHT_TEXT_COLOR = "#ffffff"  # Text on highlighted background
+    LINK_COLOR = "#2a82da"            # Links
+    BRIGHT_TEXT_COLOR = "#ff0000"     # Error/warning text
+    SEPARATOR_COLOR = "#555555"       # Menu separators
+    
+    # Tooltip colors
+    TOOLTIP_BG_COLOR = "#191919"      # Tooltip background
+    TOOLTIP_TEXT_COLOR = "#ffffff"    # Tooltip text
+    
+    # Dropdown specific colors
+    DROPDOWN_BG_COLOR = "#2a2a2a"     # Dropdown background (same as main window)
+    DROPDOWN_BORDER_COLOR = BORDER_COLOR  # Dropdown borders
+
+    
 
 class LightTheme:
     """Light theme color constants."""
-    # Main background colors
-    WINDOW = "#f0f0f0"          # Main window background
-    BASE = "#ffffff"            # Input fields, text areas
-    ALTERNATE_BASE = "#f5f5f5"  # Alternate background
+    
+    # Base color palette
+    BASE_COLOR = '#ffffff'            # Input fields, text areas
+    MAIN_WINDOW_COLOR = '#f0f0f0'     # Main window background
+    BUTTON_BG_COLOR = '#e0e0e0'       # Buttons
+    BORDER_COLOR = '#c0c0c0'          # Borders
     
     # Text colors
-    TEXT = "#000000"            # Primary text
-    WINDOW_TEXT = "#000000"     # Window text
-    BUTTON_TEXT = "#000000"     # Button text
-    
-    # Interactive elements
-    BUTTON = "#e1e1e1"          # Button background
-    BUTTON_HOVER = "#0078d4"    # Button hover state (Windows blue)
-    HIGHLIGHT = "#0078d4"       # Selection/highlight color
-    HIGHLIGHTED_TEXT = "#ffffff" # Text on highlighted background
+    TEXT_COLOR = "#000000"            # Primary text
+    TEXT_PLACEHOLDER_COLOR = "#888888"  # Placeholder text
     
     # Universal hover color (used for all interactive elements)
-    HOVER_BG = "#0078d4"        # Universal hover background color
-    HOVER_TEXT = "#ffffff"      # Universal hover text color
+    HOVER_BG_COLOR = "#007cda"        # Universal hover background color (Windows blue)
+    TEXT_COLOR_HOVER = "#ffffff"      # Universal hover text color
+    BORDER_COLOR_HOVER = HOVER_BG_COLOR    # Hover state borders
     
-    # Borders and lines
-    BORDER = "#3D3D3D"          # Standard borders
-    BORDER_HOVER = "#0078d4"    # Hover state borders
-    SEPARATOR = "#e1e1e1"       # Menu separators
+    # Button pressed/active state
+    BUTTON_PRESSED_BG_COLOR = "#005393"  # Button pressed/active background (darker blue)
+    BUTTON_PRESSED_TEXT_COLOR = "#ffffff"  # Button pressed/active text
+
+    # Panel resize handle (QSplitter handle)
+    SPLITTER_HANDLE_COLOR = MAIN_WINDOW_COLOR  # Color of the splitter handle
+    SPLITTER_HANDLE_COLOR_HOVER = HOVER_BG_COLOR  # Color of the splitter handle on hover
     
-    # Dropdown specific colors (deprecated - use HOVER_BG/HOVER_TEXT instead)
-    DROPDOWN_BG = "#f0f0f0"     # Dropdown background (slightly darker than white)
-    DROPDOWN_HOVER = "#0078d4"  # Dropdown item hover (use HOVER_BG instead)
-    DROPDOWN_ITEM_HOVER = "#e5f3ff"  # Dropdown item hover (use HOVER_BG instead)
-    DROPDOWN_HOVER_TEXT = "#ffffff"  # Text color when hovering over dropdown items (use HOVER_TEXT instead)
-    DROPDOWN_BORDER = "#cccccc"      # Dropdown borders
+    # Special purpose colors
+    HIGHLIGHT_BG_COLOR = HOVER_BG_COLOR    # Selection/highlight background
+    HIGHLIGHT_TEXT_COLOR = "#ffffff"  # Text on highlighted background
+    LINK_COLOR = "#0078d4"            # Links (Windows blue)
+    BRIGHT_TEXT_COLOR = "#d13438"     # Error/warning text (red)
+    SEPARATOR_COLOR = "#e1e1e1"       # Menu separators
     
-    # Menu specific colors (deprecated - use HOVER_TEXT instead)
-    MENU_HOVER_TEXT = "#ffffff"      # Text color when hovering over menu items (use HOVER_TEXT instead)
+    # Tooltip colors
+    TOOLTIP_BG_COLOR = "#ffffe1"      # Tooltip background (light yellow)
+    TOOLTIP_TEXT_COLOR = "#000000"    # Tooltip text
     
-    # Special colors
-    BRIGHT_TEXT = "#d13438"     # Error/warning text (red)
-    LINK = "#0078d4"           # Links (Windows blue)
-    TOOLTIP_BASE = "#ffffe1"    # Tooltip background (light yellow)
-    TOOLTIP_TEXT = "#000000"    # Tooltip text
+    # Dropdown specific colors
+    DROPDOWN_BG_COLOR = "#ffffff"     # Dropdown background (white)
+    DROPDOWN_BORDER_COLOR = BORDER_COLOR  # Dropdown borders
 
 
 # Layout and Spacing Constants
@@ -129,47 +127,38 @@ def get_dark_stylesheet():
     """Generate dark theme stylesheet with current font size."""
     return f"""
 QPushButton {{
-    background-color: {DarkTheme.BUTTON};
-    color: {DarkTheme.BUTTON_TEXT};
-    border: 1px solid {DarkTheme.BORDER};
+    background-color: {DarkTheme.BUTTON_BG_COLOR};
+    color: {DarkTheme.TEXT_COLOR};
+    border: 1px solid {DarkTheme.BORDER_COLOR};
     padding: 6px 12px;
     border-radius: 3px;
     font-size: {Layout.FONT_SIZE}pt;
     {f"min-height: {Layout.BUTTON_HEIGHT}px; max-height: {Layout.BUTTON_HEIGHT}px;" if Layout.BUTTON_HEIGHT else ""}
 }}
 QPushButton:hover {{
-    background-color: {DarkTheme.HOVER_BG};
-    border: 1px solid {DarkTheme.BORDER_HOVER};
-    color: {DarkTheme.HOVER_TEXT};
+    background-color: {DarkTheme.HOVER_BG_COLOR};
+    border: 1px solid {DarkTheme.BORDER_COLOR_HOVER};
+    color: {DarkTheme.TEXT_COLOR_HOVER};
 }}
+
 QPushButton:pressed {{
-    background-color: {DarkTheme.HIGHLIGHT};
-    border: 1px solid {DarkTheme.BORDER_HOVER};
-    color: {DarkTheme.HOVER_TEXT};
+    background-color: {DarkTheme.BUTTON_PRESSED_BG_COLOR};
+    border: 1px solid {DarkTheme.BORDER_COLOR_HOVER};
+    color: {DarkTheme.BUTTON_PRESSED_TEXT_COLOR};
 }}
 
 QComboBox {{
-    background-color: {DarkTheme.DROPDOWN_BG};
-    color: {DarkTheme.TEXT};
-    border: 1px solid {DarkTheme.DROPDOWN_BORDER};
+    background-color: {DarkTheme.DROPDOWN_BG_COLOR};
+    color: {DarkTheme.TEXT_COLOR};
+    border: 1px solid {DarkTheme.DROPDOWN_BORDER_COLOR};
     font-size: {Layout.FONT_SIZE}pt;
-}}
-QComboBox::drop-down {{
-    background-color: {DarkTheme.BUTTON};
-    border: 1px solid {DarkTheme.BORDER};
-    width: 20px;
-}}
-QComboBox::down-arrow {{
-    image: none;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid {DarkTheme.TEXT};
+    padding: 4px;
 }}
 
 QLineEdit {{
-    background-color: {DarkTheme.BASE};
-    color: {DarkTheme.TEXT};
-    border: 1px solid {DarkTheme.BORDER};
+    background-color: {DarkTheme.BASE_COLOR};
+    color: {DarkTheme.TEXT_COLOR};
+    border: 1px solid {DarkTheme.BORDER_COLOR};
     padding: 4px;
     border-radius: 3px;
     font-size: {Layout.FONT_SIZE}pt;
@@ -177,66 +166,43 @@ QLineEdit {{
 }}
 
 QSpinBox {{
-    background-color: {DarkTheme.BASE};
-    color: {DarkTheme.TEXT};
-    border: 1px solid {DarkTheme.BORDER};
     font-size: {Layout.FONT_SIZE}pt;
-}}
-QSpinBox::up-button {{
-    background-color: {DarkTheme.BUTTON};
-    border: 1px solid {DarkTheme.BORDER};
-}}
-QSpinBox::down-button {{
-    background-color: {DarkTheme.BUTTON};
-    border: 1px solid {DarkTheme.BORDER};
-}}
-QSpinBox::up-arrow {{
-    image: none;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-bottom: 4px solid {DarkTheme.TEXT};
-}}
-QSpinBox::down-arrow {{
-    image: none;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid {DarkTheme.TEXT};
 }}
 
 QLabel {{
-    color: {DarkTheme.TEXT};
+    color: {DarkTheme.TEXT_COLOR};
     font-size: {Layout.FONT_SIZE}pt;
     {f"min-height: {Layout.LABEL_HEIGHT}px;" if Layout.LABEL_HEIGHT else ""}
 }}
 
 QComboBox:hover {{
-    border: 1px solid {DarkTheme.BORDER_HOVER};
+    border: 1px solid {DarkTheme.BORDER_COLOR_HOVER};
 }}
 QComboBox QAbstractItemView {{
-    background-color: {DarkTheme.DROPDOWN_BG};
-    color: {DarkTheme.TEXT};
-    selection-background-color: {DarkTheme.HIGHLIGHT};
-    selection-color: {DarkTheme.HIGHLIGHTED_TEXT};
-    border: 1px solid {DarkTheme.DROPDOWN_BORDER};
+    background-color: {DarkTheme.DROPDOWN_BG_COLOR};
+    color: {DarkTheme.TEXT_COLOR};
+    selection-background-color: {DarkTheme.HIGHLIGHT_BG_COLOR};
+    selection-color: {DarkTheme.HIGHLIGHT_TEXT_COLOR};
+    border: 1px solid {DarkTheme.DROPDOWN_BORDER_COLOR};
 }}
 QComboBox QAbstractItemView::item {{
     padding: 4px;
-    background-color: {DarkTheme.DROPDOWN_BG};
-    color: {DarkTheme.TEXT};
+    background-color: {DarkTheme.DROPDOWN_BG_COLOR};
+    color: {DarkTheme.TEXT_COLOR};
 }}
 QComboBox QAbstractItemView::item:selected {{
-    background-color: {DarkTheme.HIGHLIGHT};
-    color: {DarkTheme.HIGHLIGHTED_TEXT};
+    background-color: {DarkTheme.HIGHLIGHT_BG_COLOR};
+    color: {DarkTheme.HIGHLIGHT_TEXT_COLOR};
 }}
 QComboBox QAbstractItemView::item:hover {{
-    background-color: {DarkTheme.HOVER_BG};
-    color: {DarkTheme.HOVER_TEXT};
+    background-color: {DarkTheme.HOVER_BG_COLOR};
+    color: {DarkTheme.TEXT_COLOR_HOVER};
 }}
 
 QMenuBar {{
-    background-color: {DarkTheme.WINDOW};
-    color: {DarkTheme.TEXT};
-    border-bottom: 1px solid {DarkTheme.BORDER};
+    background-color: {DarkTheme.MAIN_WINDOW_COLOR};
+    color: {DarkTheme.TEXT_COLOR};
+    border-bottom: 1px solid {DarkTheme.BORDER_COLOR};
     spacing: {Layout.WIDGET_SPACING_TIGHT}px;
     font-size: {Layout.FONT_SIZE}pt;
 }}
@@ -247,18 +213,18 @@ QMenuBar::item {{
     font-size: {Layout.FONT_SIZE}pt;
 }}
 QMenuBar::item:selected {{
-    background-color: {DarkTheme.HOVER_BG};
-    color: {DarkTheme.HOVER_TEXT};
+    background-color: {DarkTheme.HOVER_BG_COLOR};
+    color: {DarkTheme.TEXT_COLOR_HOVER};
 }}
 QMenuBar::item:pressed {{
-    background-color: {DarkTheme.HIGHLIGHT};
-    color: {DarkTheme.HOVER_TEXT};
+    background-color: {DarkTheme.HIGHLIGHT_BG_COLOR};
+    color: {DarkTheme.TEXT_COLOR_HOVER};
 }}
 
 QMenu {{
-    background-color: {DarkTheme.DROPDOWN_BG};
-    color: {DarkTheme.TEXT};
-    border: 1px solid {DarkTheme.DROPDOWN_BORDER};
+    background-color: {DarkTheme.DROPDOWN_BG_COLOR};
+    color: {DarkTheme.TEXT_COLOR};
+    border: 1px solid {DarkTheme.DROPDOWN_BORDER_COLOR};
     font-size: {Layout.FONT_SIZE}pt;
 }}
 QMenu::item {{
@@ -267,19 +233,32 @@ QMenu::item {{
     font-size: {Layout.FONT_SIZE}pt;
 }}
 QMenu::item:selected {{
-    background-color: {DarkTheme.HIGHLIGHT};
-    color: {DarkTheme.HOVER_TEXT};
+    background-color: {DarkTheme.HIGHLIGHT_BG_COLOR};
+    color: {DarkTheme.TEXT_COLOR_HOVER};
     font-size: {Layout.FONT_SIZE}pt;
 }}
 QMenuBar::item:hover {{
-    background-color: {DarkTheme.HOVER_BG};
-    color: {DarkTheme.HOVER_TEXT};
+    background-color: {DarkTheme.HOVER_BG_COLOR};
+    color: {DarkTheme.TEXT_COLOR_HOVER};
     font-size: {Layout.FONT_SIZE}pt;
 }}
 QMenu::separator {{
     height: 1px;
-    background-color: {DarkTheme.SEPARATOR};
+    background-color: {DarkTheme.SEPARATOR_COLOR};
     margin: 2px 0px;
+}}
+
+QSplitter::handle {{
+    background-color: {DarkTheme.SPLITTER_HANDLE_COLOR};
+}}
+QSplitter::handle:horizontal {{
+    width: 8px;
+}}
+QSplitter::handle:vertical {{
+    height: 8px;
+}}
+QSplitter::handle:hover {{
+    background-color: {DarkTheme.SPLITTER_HANDLE_COLOR_HOVER};
 }}
 """
 
@@ -288,33 +267,41 @@ def get_light_stylesheet():
     """Generate light theme stylesheet with current font size."""
     return f"""
 QPushButton {{
-    background-color: {LightTheme.BUTTON};
-    color: {LightTheme.BUTTON_TEXT};
-    border: 1px solid {LightTheme.BORDER};
+    background-color: {LightTheme.BUTTON_BG_COLOR};
+    color: {LightTheme.TEXT_COLOR};
+    border: 1px solid {LightTheme.BORDER_COLOR};
     {f"min-height: {Layout.BUTTON_HEIGHT}px; max-height: {Layout.BUTTON_HEIGHT}px;" if Layout.BUTTON_HEIGHT else ""}
     padding: 6px 12px;
     border-radius: 3px;
+    font-size: {Layout.FONT_SIZE}pt;
 }}
 QPushButton:hover {{
-    background-color: {LightTheme.HOVER_BG};
-    border: 1px solid {LightTheme.BORDER_HOVER};
-    color: {LightTheme.HOVER_TEXT};
+    background-color: {LightTheme.HOVER_BG_COLOR};
+    border: 1px solid {LightTheme.BORDER_COLOR_HOVER};
+    color: {LightTheme.TEXT_COLOR_HOVER};
 }}
 QPushButton:pressed {{
-    background-color: {LightTheme.HIGHLIGHT};
-    border: 1px solid {LightTheme.BORDER_HOVER};
-    color: {LightTheme.HOVER_TEXT};
+    background-color: {LightTheme.BUTTON_PRESSED_BG_COLOR};
+    border: 1px solid {LightTheme.BORDER_COLOR_HOVER};
+    color: {LightTheme.BUTTON_PRESSED_TEXT_COLOR};
 }}
 
 QComboBox {{
-    background-color: {LightTheme.DROPDOWN_BG};
+    background-color: {LightTheme.DROPDOWN_BG_COLOR};
+    color: {LightTheme.TEXT_COLOR};
+    border: 1px solid {LightTheme.DROPDOWN_BORDER_COLOR};
     font-size: {Layout.FONT_SIZE}pt;
+    padding: 4px;
 }}
 
 QLineEdit {{
+    background-color: {LightTheme.BASE_COLOR};
+    color: {LightTheme.TEXT_COLOR};
+    border: 1px solid {LightTheme.BORDER_COLOR};
     {f"min-height: {Layout.INPUT_HEIGHT}px; max-height: {Layout.INPUT_HEIGHT}px;" if Layout.INPUT_HEIGHT else ""}
     padding: 4px;
     border-radius: 3px;
+    font-size: {Layout.FONT_SIZE}pt;
 }}
 
 QSpinBox {{
@@ -322,38 +309,64 @@ QSpinBox {{
 }}
 
 QLabel {{
+    color: {LightTheme.TEXT_COLOR};
+    font-size: {Layout.FONT_SIZE}pt;
     {f"min-height: {Layout.LABEL_HEIGHT}px;" if Layout.LABEL_HEIGHT else ""}
 }}
 
+QComboBox:hover {{
+    border: 1px solid {LightTheme.BORDER_COLOR_HOVER};
+}}
+QComboBox QAbstractItemView {{
+    background-color: {LightTheme.DROPDOWN_BG_COLOR};
+    color: {LightTheme.TEXT_COLOR};
+    selection-background-color: {LightTheme.HIGHLIGHT_BG_COLOR};
+    selection-color: {LightTheme.HIGHLIGHT_TEXT_COLOR};
+    border: 1px solid {LightTheme.DROPDOWN_BORDER_COLOR};
+}}
+QComboBox QAbstractItemView::item {{
+    padding: 4px;
+    background-color: {LightTheme.DROPDOWN_BG_COLOR};
+    color: {LightTheme.TEXT_COLOR};
+}}
+QComboBox QAbstractItemView::item:selected {{
+    background-color: {LightTheme.HIGHLIGHT_BG_COLOR};
+    color: {LightTheme.HIGHLIGHT_TEXT_COLOR};
+}}
+QComboBox QAbstractItemView::item:hover {{
+    background-color: {LightTheme.HOVER_BG_COLOR};
+    color: {LightTheme.TEXT_COLOR_HOVER};
+}}
+
 QMenuBar {{
-    background-color: {LightTheme.WINDOW};
-    color: {LightTheme.TEXT};
-    border-bottom: 1px solid {LightTheme.BORDER};
+    background-color: {LightTheme.MAIN_WINDOW_COLOR};
+    color: {LightTheme.TEXT_COLOR};
+    border-bottom: 1px solid {LightTheme.BORDER_COLOR};
     spacing: {Layout.WIDGET_SPACING_TIGHT}px;
     font-size: {Layout.FONT_SIZE}pt;
 }}
 QMenuBar::item {{
     background-color: transparent;
-    color: {LightTheme.TEXT};
+    color: {LightTheme.TEXT_COLOR};
     padding: {Layout.MENU_ITEM_PADDING};
     margin: {Layout.MENU_ITEM_MARGIN};
     font-size: {Layout.FONT_SIZE}pt;
 }}
 QMenuBar::item:selected {{
-    background-color: {LightTheme.HOVER_BG};
-    color: {LightTheme.HOVER_TEXT};
+    background-color: {LightTheme.HOVER_BG_COLOR};
+    color: {LightTheme.TEXT_COLOR_HOVER};
     font-size: {Layout.FONT_SIZE}pt;
 }}
 QMenuBar::item:pressed {{
-    background-color: {LightTheme.HIGHLIGHT};
-    color: {LightTheme.HOVER_TEXT};
+    background-color: {LightTheme.BUTTON_PRESSED_BG_COLOR};
+    color: {LightTheme.BUTTON_PRESSED_TEXT_COLOR};
     font-size: {Layout.FONT_SIZE}pt;
 }}
 
 QMenu {{
-    background-color: {LightTheme.DROPDOWN_BG};
-    color: {LightTheme.TEXT};
-    border: 1px solid {LightTheme.BORDER};
+    background-color: {LightTheme.DROPDOWN_BG_COLOR};
+    color: {LightTheme.TEXT_COLOR};
+    border: 1px solid {LightTheme.DROPDOWN_BORDER_COLOR};
     font-size: {Layout.FONT_SIZE}pt;
 }}
 QMenu::item {{
@@ -362,17 +375,32 @@ QMenu::item {{
     font-size: {Layout.FONT_SIZE}pt;
 }}
 QMenu::item:selected {{
-    background-color: {LightTheme.HIGHLIGHT};
-    color: {LightTheme.HOVER_TEXT};
+    background-color: {LightTheme.HIGHLIGHT_BG_COLOR};
+    color: {LightTheme.TEXT_COLOR_HOVER};
     font-size: {Layout.FONT_SIZE}pt;
 }}
-
-QComboBox QAbstractItemView {{
-    background-color: {LightTheme.DROPDOWN_BG};
+QMenuBar::item:hover {{
+    background-color: {LightTheme.HOVER_BG_COLOR};
+    color: {LightTheme.TEXT_COLOR_HOVER};
+    font-size: {Layout.FONT_SIZE}pt;
 }}
-QComboBox QAbstractItemView::item:hover {{
-    background-color: {LightTheme.HOVER_BG};
-    color: {LightTheme.HOVER_TEXT};
+QMenu::separator {{
+    height: 1px;
+    background-color: {LightTheme.SEPARATOR_COLOR};
+    margin: 2px 0px;
+}}
+
+QSplitter::handle {{
+    background-color: {LightTheme.SPLITTER_HANDLE_COLOR};
+}}
+QSplitter::handle:horizontal {{
+    width: 8px;
+}}
+QSplitter::handle:vertical {{
+    height: 8px;
+}}
+QSplitter::handle:hover {{
+    background-color: {LightTheme.SPLITTER_HANDLE_COLOR_HOVER};
 }}
 """
 
