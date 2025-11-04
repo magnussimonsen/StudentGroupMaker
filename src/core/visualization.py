@@ -5,11 +5,12 @@ This module provides functions to visualize co-occurrence patterns
 in group schedules.
 """
 from __future__ import annotations
-import matplotlib.pyplot as plt
 import matplotlib
+# Use the generic Qt backend for Qt6/PySide6
+matplotlib.use('QtAgg')
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import BoundaryNorm
-matplotlib.use('Qt5Agg')  # Use Qt backend for PySide6 integration
 
 
 def build_pair_matrix(rounds: list[list[list[str]]]) -> tuple[list[str], list[list[int]]]:

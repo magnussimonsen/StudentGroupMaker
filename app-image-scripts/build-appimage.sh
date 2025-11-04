@@ -1,7 +1,8 @@
 #!/bin/bash
 # Build AppImage for GroupMaker
 # This creates a portable single-file executable for Linux
-
+# To run this script, first run ./build-wrapper.sh to build the executable
+# Then run this script to create the AppImage. Command: ./app-image-scripts/build-appimage.sh
 set -e
 
 echo "========================================"
@@ -46,13 +47,14 @@ Terminal=false
 EOF
 
 # Copy icon (if exists) or create placeholder
-if [ -f "app-image-scripts/icon.png" ]; then
-    echo "Copying icon..."
-    cp app-image-scripts/icon.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/groupmaker.png"
-    cp app-image-scripts/icon.png "$APPDIR/groupmaker.png"
-    cp app-image-scripts/icon.png "$APPDIR/.DirIcon"
+ICON_SOURCE="src/icons/icon.png"
+if [ -f "$ICON_SOURCE" ]; then
+    echo "Copying icon from $ICON_SOURCE..."
+    cp "$ICON_SOURCE" "$APPDIR/usr/share/icons/hicolor/256x256/apps/groupmaker.png"
+    cp "$ICON_SOURCE" "$APPDIR/groupmaker.png"
+    cp "$ICON_SOURCE" "$APPDIR/.DirIcon"
 else
-    echo "WARNING: No icon found at app-image-scripts/icon.png"
+    echo "WARNING: No icon found at $ICON_SOURCE"
     echo "Creating placeholder icon..."
     # Create a simple placeholder (requires imagemagick)
     if command -v convert &> /dev/null; then
