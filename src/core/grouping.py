@@ -71,6 +71,8 @@ def build_round(
     if rng is None:
         rng = random.Random()
         
+    # Clamp groups to number of students to avoid zero-sized groups
+    n_groups = max(1, min(n_groups, len(students)))
     sizes = partition_sizes(len(students), n_groups)
     best_groups, best_cost = None, float("inf")
 
@@ -89,6 +91,12 @@ def build_round(
 
         # Build groups greedily
         for size in sizes:
+            # Skip zero-sized groups (can occur if requested groups > students)
+            if size <= 0:
+                continue
+            # Safety: if unassigned is empty, stop building
+            if not unassigned:
+                break
             seed = unassigned.pop(0)
             group = [seed]
             
@@ -146,7 +154,9 @@ def schedule_groups(
     all_rounds = []
 
     for _ in range(rounds):
-        groups, _ = build_round(students, n_groups, pair_counts, restarts=restarts, rng=rng)
+        # Clamp n_groups per round to current number of students to avoid zero-size groups
+        effective_groups = max(1, min(n_groups, len(students)))
+        groups, _ = build_round(students, effective_groups, pair_counts, restarts=restarts, rng=rng)
         all_rounds.append(groups)
         
         # Update pair counts

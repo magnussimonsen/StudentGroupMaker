@@ -1,2 +1,0 @@
-pip install pyinstaller
-pyinstaller --onefile --noconsole --name GroupMaker --collect-all PySide6 group-maker.py

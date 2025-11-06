@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt
 
 from ..constants import APP_NAME, VERSION, REPOSITORY
 from ..constants.colors_and_styling import (
-    DARK_STYLESHEET, LIGHT_STYLESHEET, DarkTheme, Layout,
+    DARK_STYLESHEET, LIGHT_STYLESHEET, DarkTheme, LightTheme, Layout,
     get_dark_stylesheet, get_light_stylesheet
 )
 from ..core import schedule_groups, schedule_quality
@@ -117,19 +117,32 @@ class MainWindow(QMainWindow):
         
         # Row 4: Main panels (horizontal splitter)
         splitter = QSplitter(Qt.Horizontal)
-        
+
         # Left side: Student list from class panel
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(QLabel("Students:"))
         left_layout.addWidget(self.class_panel.student_list)
-        
+        # Enforce a sensible minimum width so the list and names remain readable
+        left_widget.setMinimumWidth(260)
+
         # Right side: Output panel
         self.output_panel = OutputPanel()
+        # Enforce a sensible minimum width so the output doesn't collapse
+        self.output_panel.setMinimumWidth(420)
         
         splitter.addWidget(left_widget)
         splitter.addWidget(self.output_panel)
+
+        # Prevent panels from being collapsed to zero size with the splitter
+        splitter.setChildrenCollapsible(False)
+        try:
+            splitter.setCollapsible(0, False)
+            splitter.setCollapsible(1, False)
+        except AttributeError:
+            # Older Qt: setChildrenCollapsible covers the behavior
+            pass
         
         # Set initial splitter sizes (30% left, 70% right)
         splitter.setSizes([400, 800])
@@ -151,6 +164,9 @@ class MainWindow(QMainWindow):
         btn_add_student = QPushButton("Add")
         btn_add_student.clicked.connect(self._add_student)
         
+        btn_remove_student = QPushButton("Remove selected student(s)")
+        btn_remove_student.clicked.connect(self._remove_selected_students)
+        
         btn_all = QPushButton("Check all")
         btn_all.clicked.connect(self._check_all)
         
@@ -160,6 +176,7 @@ class MainWindow(QMainWindow):
         students_row.addWidget(QLabel("Student actions:"))
         students_row.addWidget(self.student_input, 2)
         students_row.addWidget(btn_add_student)
+        students_row.addWidget(btn_remove_student)
         students_row.addWidget(btn_all)
         students_row.addWidget(btn_none)
         students_row.addStretch()
@@ -170,6 +187,10 @@ class MainWindow(QMainWindow):
         """Add a student via the bottom bar."""
         self.class_panel.add_student_from_input(self.student_input.text())
         self.student_input.clear()
+    
+    def _remove_selected_students(self):
+        """Remove selected students via the bottom bar."""
+        self.class_panel.remove_selected_students()
     
     def _check_all(self):
         """Check all students via the bottom bar."""
@@ -219,7 +240,9 @@ class MainWindow(QMainWindow):
         students_per_group = self.controls_panel.num_students.value()
         num_groups = self.controls_panel.num_groups.value()
         num_rounds = self.controls_panel.num_rounds.value()
-        seed = self.controls_panel.random_seed.value()
+        seed_value = self.controls_panel.random_seed.value()
+        # Treat 0 as "totally random" by passing None to the scheduler
+        seed = None if seed_value == 0 else seed_value
         
         self._generate_groups(students_per_group, num_groups, num_rounds, seed)
     
@@ -282,12 +305,22 @@ class MainWindow(QMainWindow):
         self.output_panel.set_font_size(size)
     
     def _generate_groups(self, students_per_group: int, num_groups: int, 
-                        num_rounds: int, seed: int):
+                        num_rounds: int, seed: int | None):
         """Generate groups based on current settings."""
         present = self.class_panel.get_present_students()
         
         if not present:
             QMessageBox.warning(self, "No students", "No students are checked as present.")
+            return
+
+        # Validate: cannot create more groups than students (would create empty groups)
+        if num_groups > len(present):
+            QMessageBox.warning(
+                self,
+                "Too many groups",
+                f"You selected {num_groups} groups but only {len(present)} student(s) are present.\n"
+                "Reduce the number of groups or add more students."
+            )
             return
         
         # Generate the schedule
@@ -304,15 +337,15 @@ class MainWindow(QMainWindow):
         # Calculate quality - returns (overall_pct, per_round_pct, counts)
         overall_pct, per_round_pct, counts = schedule_quality(schedule)
         
-        # Format output
+        # Format output as a simple one-column header
         lines = []
-        lines.append(f"Class: {self.class_panel.get_current_class_name()}")
-        lines.append(f"Students: {len(present)}")
-        lines.append(f"Groups per round: {num_groups}")
-        lines.append(f"Students per group: {students_per_group}")
-        lines.append(f"Rounds: {num_rounds}")
-        lines.append(f"Quality: {overall_pct:.1f}% unique pairs")
-        lines.append(f"Random seed: {seed}")
+        lines.append(f"Class:\t{self.class_panel.get_current_class_name()}")
+        lines.append(f"Students:\t{len(present)}")
+        lines.append(f"Groups per round:\t{num_groups}")
+        lines.append(f"Students per group:\t{students_per_group}")
+        lines.append(f"Rounds:\t{num_rounds}")
+        lines.append(f"Quality:\t{overall_pct:.1f}% unique pairs")
+        lines.append(f"Random seed:\t{seed if seed is not None else 'Random (0)'}")
         lines.append("")
         
         for round_idx, round_groups in enumerate(schedule, start=1):
@@ -345,27 +378,42 @@ class MainWindow(QMainWindow):
         if theme == "dark":
             # Dark mode colors using constants
             palette = QPalette()
-            palette.setColor(QPalette.Window, QColor(DarkTheme.WINDOW))
-            palette.setColor(QPalette.WindowText, QColor(DarkTheme.WINDOW_TEXT))
-            palette.setColor(QPalette.Base, QColor(DarkTheme.BASE))
-            palette.setColor(QPalette.AlternateBase, QColor(DarkTheme.ALTERNATE_BASE))
-            palette.setColor(QPalette.ToolTipBase, QColor(DarkTheme.TOOLTIP_BASE))
-            palette.setColor(QPalette.ToolTipText, QColor(DarkTheme.TOOLTIP_TEXT))
-            palette.setColor(QPalette.Text, QColor(DarkTheme.TEXT))
-            palette.setColor(QPalette.Button, QColor(DarkTheme.BUTTON))
-            palette.setColor(QPalette.ButtonText, QColor(DarkTheme.BUTTON_TEXT))
-            palette.setColor(QPalette.BrightText, QColor(DarkTheme.BRIGHT_TEXT))
-            palette.setColor(QPalette.Link, QColor(DarkTheme.LINK))
-            palette.setColor(QPalette.Highlight, QColor(DarkTheme.HIGHLIGHT))
-            palette.setColor(QPalette.HighlightedText, QColor(DarkTheme.HIGHLIGHTED_TEXT))
+            palette.setColor(QPalette.Window, QColor(DarkTheme.MAIN_WINDOW_COLOR))
+            palette.setColor(QPalette.WindowText, QColor(DarkTheme.TEXT_COLOR))
+            palette.setColor(QPalette.Base, QColor(DarkTheme.BASE_COLOR))
+            palette.setColor(QPalette.AlternateBase, QColor(DarkTheme.MAIN_WINDOW_COLOR))
+            palette.setColor(QPalette.ToolTipBase, QColor(DarkTheme.TOOLTIP_BG_COLOR))
+            palette.setColor(QPalette.ToolTipText, QColor(DarkTheme.TOOLTIP_TEXT_COLOR))
+            palette.setColor(QPalette.Text, QColor(DarkTheme.TEXT_COLOR))
+            palette.setColor(QPalette.Button, QColor(DarkTheme.BUTTON_BG_COLOR))
+            palette.setColor(QPalette.ButtonText, QColor(DarkTheme.TEXT_COLOR))
+            palette.setColor(QPalette.BrightText, QColor(DarkTheme.BRIGHT_TEXT_COLOR))
+            palette.setColor(QPalette.Link, QColor(DarkTheme.LINK_COLOR))
+            palette.setColor(QPalette.Highlight, QColor(DarkTheme.HIGHLIGHT_BG_COLOR))
+            palette.setColor(QPalette.HighlightedText, QColor(DarkTheme.HIGHLIGHT_TEXT_COLOR))
             app.setPalette(palette)
             
             # Apply dark theme stylesheet
             app.setStyleSheet(get_dark_stylesheet())
         else:
-            # Light mode - reset to default with consistent layout
-            app.setPalette(app.style().standardPalette())
-            # Apply light theme stylesheet for consistent layout
+            # Light mode - build a palette from LightTheme constants to avoid OS/Qt dark auto palette
+            palette = QPalette()
+            palette.setColor(QPalette.Window, QColor(LightTheme.MAIN_WINDOW_COLOR))
+            palette.setColor(QPalette.WindowText, QColor(LightTheme.TEXT_COLOR))
+            palette.setColor(QPalette.Base, QColor(LightTheme.BASE_COLOR))
+            palette.setColor(QPalette.AlternateBase, QColor(LightTheme.MAIN_WINDOW_COLOR))
+            palette.setColor(QPalette.ToolTipBase, QColor(LightTheme.TOOLTIP_BG_COLOR))
+            palette.setColor(QPalette.ToolTipText, QColor(LightTheme.TOOLTIP_TEXT_COLOR))
+            palette.setColor(QPalette.Text, QColor(LightTheme.TEXT_COLOR))
+            palette.setColor(QPalette.Button, QColor(LightTheme.BUTTON_BG_COLOR))
+            palette.setColor(QPalette.ButtonText, QColor(LightTheme.TEXT_COLOR))
+            palette.setColor(QPalette.BrightText, QColor(LightTheme.BRIGHT_TEXT_COLOR))
+            palette.setColor(QPalette.Link, QColor(LightTheme.LINK_COLOR))
+            palette.setColor(QPalette.Highlight, QColor(LightTheme.HIGHLIGHT_BG_COLOR))
+            palette.setColor(QPalette.HighlightedText, QColor(LightTheme.HIGHLIGHT_TEXT_COLOR))
+            app.setPalette(palette)
+
+            # Apply light theme stylesheet for consistent layout and selection visuals
             app.setStyleSheet(get_light_stylesheet())
     
     # Methods used by controls panel
@@ -390,34 +438,37 @@ class MainWindow(QMainWindow):
                 "Please generate a group schedule first."
             )
             return
-        
+
         from ..core.visualization import build_pair_matrix, create_heatmap_figure
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-        
+        from PySide6.QtWidgets import QSizePolicy
+
         names, matrix = build_pair_matrix(self.last_schedule)
-        
-        # Create dialog to display matrix
+
+        # Create dialog to display matrix as a free-floating, resizable window
         dialog = QDialog(self)
         dialog.setWindowTitle("Student Co-occurrence Matrix")
         dialog.resize(900, 800)
-        
+        dialog.setWindowFlags(dialog.windowFlags() | Qt.Window | Qt.WindowMinMaxButtonsHint | Qt.WindowCloseButtonHint)
+        dialog.setWindowModality(Qt.NonModal)
+
         layout = QVBoxLayout()
-        
+
         # Create and add matplotlib figure
         fig = create_heatmap_figure(names, matrix)
         canvas = FigureCanvas(fig)
+        # Let the canvas expand/shrink with the dialog size
+        canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(canvas)
-        
+
         # Add close button
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         close_button = QPushButton("Close")
-        close_button.clicked.connect(dialog.accept)
+        close_button.clicked.connect(dialog.close)
         button_layout.addWidget(close_button)
         layout.addLayout(button_layout)
-        
-        dialog.setLayout(layout)
-        dialog.exec()
 
-        """Get the current class name."""
-        return self.class_panel.get_current_class_name()
+        dialog.setLayout(layout)
+        # Show as non-modal so it can be moved/resized freely without blocking the main window
+        dialog.show()
