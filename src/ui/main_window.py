@@ -242,8 +242,8 @@ class MainWindow(QMainWindow):
         about_action = help_menu.addAction("About GroupMaker")
         about_action.triggered.connect(lambda: show_about_dialog(self))
         
-        repo_action = help_menu.addAction("View Repository at GitHub")
-        repo_action.triggered.connect(self._open_repository)
+        #repo_action = help_menu.addAction("View Repository at GitHub")
+        #repo_action.triggered.connect(self._open_repository)
         
         # Font Size menu (to the right of Help)
         font_menu = menubar.addMenu("Font Size")
