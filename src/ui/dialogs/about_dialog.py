@@ -32,7 +32,6 @@ def show_about_dialog(parent) -> None:
 {MIT_LICENSE_HTML}
 
 <p><b>Built with:</b> Python and PySide6</p>
-<p><b>Repository:</b> <a href="{REPOSITORY}">{REPOSITORY}</a></p>
     """
     
     msg = QMessageBox(parent)
