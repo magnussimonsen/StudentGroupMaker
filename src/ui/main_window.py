@@ -164,8 +164,8 @@ class MainWindow(QMainWindow):
         btn_add_student = QPushButton("Add")
         btn_add_student.clicked.connect(self._add_student)
         
-        btn_remove_student = QPushButton("Remove selected student(s)")
-        btn_remove_student.clicked.connect(self._remove_selected_students)
+        btn_remove_student = QPushButton("Remove checked student(s)")
+        btn_remove_student.clicked.connect(self._remove_checked_students)
         
         btn_all = QPushButton("Check all")
         btn_all.clicked.connect(self._check_all)
@@ -188,9 +188,9 @@ class MainWindow(QMainWindow):
         self.class_panel.add_student_from_input(self.student_input.text())
         self.student_input.clear()
     
-    def _remove_selected_students(self):
-        """Remove selected students via the bottom bar."""
-        self.class_panel.remove_selected_students()
+    def _remove_checked_students(self):
+        """Remove checked students via the bottom bar."""
+        self.class_panel.remove_checked_students()
     
     def _check_all(self):
         """Check all students via the bottom bar."""
