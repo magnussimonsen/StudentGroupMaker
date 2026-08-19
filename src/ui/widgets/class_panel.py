@@ -71,7 +71,8 @@ class ClassPanel(QWidget):
         
         # Student list
         self.student_list = QListWidget()
-        self.student_list.setSelectionMode(QListWidget.ExtendedSelection)
+        # Keep interaction simple: use checkboxes for attendance/removal, not list selection.
+        self.student_list.setSelectionMode(QListWidget.NoSelection)
         
         # Add to main layout
         layout.addLayout(classes_row)
@@ -204,33 +205,42 @@ class ClassPanel(QWidget):
         else:
             self._add_student_item(name, checked=True)
     
-    def remove_selected_students(self):
-        """Remove selected students (public method for bottom bar)."""
-        selected_items = self.student_list.selectedItems()
-        
-        if not selected_items:
+    def remove_checked_students(self):
+        """Remove checked students (public method for bottom bar)."""
+        checked_items = [
+            self.student_list.item(i)
+            for i in range(self.student_list.count())
+            if self.student_list.item(i).checkState() == Qt.Checked
+        ]
+
+        if not checked_items:
+            QMessageBox.information(
+                self,
+                "No students checked",
+                "Check one or more students to remove."
+            )
             return
-        
+
         # Build confirmation message with student names
-        if len(selected_items) == 1:
-            student_name = selected_items[0].text()
+        if len(checked_items) == 1:
+            student_name = checked_items[0].text()
             message = f"Are you sure you want to remove '{student_name}'?"
         else:
-            student_names = [item.text() for item in selected_items]
+            student_names = [item.text() for item in checked_items]
             names_list = "', '".join(student_names)
-            message = f"Are you sure you want to remove these {len(selected_items)} students:\n'{names_list}'?"
+            message = f"Are you sure you want to remove these {len(checked_items)} students:\n'{names_list}'?"
         
         # Show confirmation dialog
         reply = QMessageBox.question(
             self,
-            "Remove student" if len(selected_items) == 1 else "Remove students",
+            "Remove student" if len(checked_items) == 1 else "Remove students",
             message,
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
         
         if reply == QMessageBox.Yes:
-            for item in selected_items:
+            for item in checked_items:
                 self.student_list.takeItem(self.student_list.row(item))
     
     def check_all_students(self):
