@@ -62,11 +62,7 @@ class ClassPanel(QWidget):
         btn_del_class = QPushButton("Delete class")
         btn_del_class.clicked.connect(self._delete_class)
         
-        btn_save_class = QPushButton("Save class list")
-        btn_save_class.clicked.connect(self._save_class)
-        
         class_mgmt_row.addWidget(btn_del_class)
-        class_mgmt_row.addWidget(btn_save_class)
         class_mgmt_row.addStretch()
         
         # Student list
@@ -140,19 +136,15 @@ class ClassPanel(QWidget):
             self.class_combo.removeItem(idx)
             self.student_list.clear()
     
-    def _save_class(self):
-        """Save the current class."""
+    def _auto_save_class(self):
+        """Silently save the current class after its student list changes."""
         name = self.class_combo.currentText()
         if not name:
-            QMessageBox.warning(self, "No class", "Create/select a class first.")
             return
         
         # Sort students alphabetically by first name before saving (and update UI order)
         self._sort_students_by_first_name()
-
-        students = self.get_all_students()
-        save_class(name, students)
-        QMessageBox.information(self, "Saved", f"Saved {len(students)} students for '{name}'.")
+        save_class(name, self.get_all_students())
 
     def _sort_students_by_first_name(self):
         """Sort the student list by first name (case-insensitive) and update the UI order.
@@ -190,6 +182,7 @@ class ClassPanel(QWidget):
             QMessageBox.information(self, "Duplicate", f"'{name}' is already in the list.")
         else:
             self._add_student_item(name, checked=True)
+            self._auto_save_class()
         
         self.student_input.clear()
     
@@ -204,6 +197,7 @@ class ClassPanel(QWidget):
             QMessageBox.information(self, "Duplicate", f"'{name}' is already in the list.")
         else:
             self._add_student_item(name, checked=True)
+            self._auto_save_class()
     
     def remove_checked_students(self):
         """Remove checked students (public method for bottom bar)."""
@@ -242,6 +236,7 @@ class ClassPanel(QWidget):
         if reply == QMessageBox.Yes:
             for item in checked_items:
                 self.student_list.takeItem(self.student_list.row(item))
+            self._auto_save_class()
     
     def check_all_students(self):
         """Check all students (public method for bottom bar)."""

@@ -28,6 +28,18 @@ class DarkTheme:
     BUTTON_PRESSED_BG_COLOR = "#1e6bb8"  # Button pressed/active background (darker blue)
     BUTTON_PRESSED_TEXT_COLOR = "#ffffff"  # Button pressed/active text
 
+    # Destructive action buttons (e.g. Delete class)
+    DANGER_BG_COLOR = "#c42b1c"          # Red button background
+    DANGER_BG_COLOR_HOVER = "#e0392a"    # Red button hover background
+    DANGER_BG_COLOR_PRESSED = "#a01f13"  # Red button pressed background
+    DANGER_TEXT_COLOR = "#ffffff"        # Text on red buttons
+
+    # Primary action buttons (e.g. Generate groups)
+    SUCCESS_BG_COLOR = "#107c10"          # Green button background
+    SUCCESS_BG_COLOR_HOVER = "#1a9a1a"    # Green button hover background
+    SUCCESS_BG_COLOR_PRESSED = "#0b5a0b"  # Green button pressed background
+    SUCCESS_TEXT_COLOR = "#ffffff"        # Text on green buttons
+
     # Panel resize handle (QSplitter handle)
     SPLITTER_HANDLE_COLOR = MAIN_WINDOW_COLOR  # Color of the splitter handle
     SPLITTER_HANDLE_COLOR_HOVER = HOVER_BG_COLOR  # Color of the splitter handle on hover
@@ -70,6 +82,18 @@ class LightTheme:
     # Button pressed/active state
     BUTTON_PRESSED_BG_COLOR = "#005393"  # Button pressed/active background (darker blue)
     BUTTON_PRESSED_TEXT_COLOR = "#ffffff"  # Button pressed/active text
+
+    # Destructive action buttons (e.g. Delete class)
+    DANGER_BG_COLOR = "#c42b1c"          # Red button background
+    DANGER_BG_COLOR_HOVER = "#e0392a"    # Red button hover background
+    DANGER_BG_COLOR_PRESSED = "#a01f13"  # Red button pressed background
+    DANGER_TEXT_COLOR = "#ffffff"        # Text on red buttons
+
+    # Primary action buttons (e.g. Generate groups)
+    SUCCESS_BG_COLOR = "#107c10"          # Green button background
+    SUCCESS_BG_COLOR_HOVER = "#1a9a1a"    # Green button hover background
+    SUCCESS_BG_COLOR_PRESSED = "#0b5a0b"  # Green button pressed background
+    SUCCESS_TEXT_COLOR = "#ffffff"        # Text on green buttons
 
     # Panel resize handle (QSplitter handle)
     SPLITTER_HANDLE_COLOR = MAIN_WINDOW_COLOR  # Color of the splitter handle
@@ -130,7 +154,7 @@ QPushButton {{
     background-color: {DarkTheme.BUTTON_BG_COLOR};
     color: {DarkTheme.TEXT_COLOR};
     border: 1px solid {DarkTheme.BORDER_COLOR};
-    padding: 6px 12px;
+    padding: 3px 10px;
     border-radius: 3px;
     font-size: {Layout.FONT_SIZE}pt;
     {f"min-height: {Layout.BUTTON_HEIGHT}px; max-height: {Layout.BUTTON_HEIGHT}px;" if Layout.BUTTON_HEIGHT else ""}
@@ -147,19 +171,43 @@ QPushButton:pressed {{
     color: {DarkTheme.BUTTON_PRESSED_TEXT_COLOR};
 }}
 
+QPushButton#deleteClassButton {{
+    background-color: {DarkTheme.DANGER_BG_COLOR};
+    border: 1px solid {DarkTheme.DANGER_BG_COLOR_PRESSED};
+    color: {DarkTheme.DANGER_TEXT_COLOR};
+}}
+QPushButton#deleteClassButton:hover {{
+    background-color: {DarkTheme.DANGER_BG_COLOR_HOVER};
+}}
+QPushButton#deleteClassButton:pressed {{
+    background-color: {DarkTheme.DANGER_BG_COLOR_PRESSED};
+}}
+
+QPushButton#generateButton {{
+    background-color: {DarkTheme.SUCCESS_BG_COLOR};
+    border: 1px solid {DarkTheme.SUCCESS_BG_COLOR_PRESSED};
+    color: {DarkTheme.SUCCESS_TEXT_COLOR};
+}}
+QPushButton#generateButton:hover {{
+    background-color: {DarkTheme.SUCCESS_BG_COLOR_HOVER};
+}}
+QPushButton#generateButton:pressed {{
+    background-color: {DarkTheme.SUCCESS_BG_COLOR_PRESSED};
+}}
+
 QComboBox {{
     background-color: {DarkTheme.DROPDOWN_BG_COLOR};
     color: {DarkTheme.TEXT_COLOR};
     border: 1px solid {DarkTheme.DROPDOWN_BORDER_COLOR};
     font-size: {Layout.FONT_SIZE}pt;
-    padding: 4px;
+    padding: 2px 4px;
 }}
 
 QLineEdit {{
     background-color: {DarkTheme.BASE_COLOR};
     color: {DarkTheme.TEXT_COLOR};
     border: 1px solid {DarkTheme.BORDER_COLOR};
-    padding: 4px;
+    padding: 2px 4px;
     border-radius: 3px;
     font-size: {Layout.FONT_SIZE}pt;
     {f"min-height: {Layout.INPUT_HEIGHT}px; max-height: {Layout.INPUT_HEIGHT}px;" if Layout.INPUT_HEIGHT else ""}
@@ -295,7 +343,7 @@ QPushButton {{
     color: {LightTheme.TEXT_COLOR};
     border: 1px solid {LightTheme.BORDER_COLOR};
     {f"min-height: {Layout.BUTTON_HEIGHT}px; max-height: {Layout.BUTTON_HEIGHT}px;" if Layout.BUTTON_HEIGHT else ""}
-    padding: 6px 12px;
+    padding: 3px 10px;
     border-radius: 3px;
     font-size: {Layout.FONT_SIZE}pt;
 }}
@@ -310,12 +358,36 @@ QPushButton:pressed {{
     color: {LightTheme.BUTTON_PRESSED_TEXT_COLOR};
 }}
 
+QPushButton#deleteClassButton {{
+    background-color: {LightTheme.DANGER_BG_COLOR};
+    border: 1px solid {LightTheme.DANGER_BG_COLOR_PRESSED};
+    color: {LightTheme.DANGER_TEXT_COLOR};
+}}
+QPushButton#deleteClassButton:hover {{
+    background-color: {LightTheme.DANGER_BG_COLOR_HOVER};
+}}
+QPushButton#deleteClassButton:pressed {{
+    background-color: {LightTheme.DANGER_BG_COLOR_PRESSED};
+}}
+
+QPushButton#generateButton {{
+    background-color: {LightTheme.SUCCESS_BG_COLOR};
+    border: 1px solid {LightTheme.SUCCESS_BG_COLOR_PRESSED};
+    color: {LightTheme.SUCCESS_TEXT_COLOR};
+}}
+QPushButton#generateButton:hover {{
+    background-color: {LightTheme.SUCCESS_BG_COLOR_HOVER};
+}}
+QPushButton#generateButton:pressed {{
+    background-color: {LightTheme.SUCCESS_BG_COLOR_PRESSED};
+}}
+
 QComboBox {{
     background-color: {LightTheme.DROPDOWN_BG_COLOR};
     color: {LightTheme.TEXT_COLOR};
     border: 1px solid {LightTheme.DROPDOWN_BORDER_COLOR};
     font-size: {Layout.FONT_SIZE}pt;
-    padding: 4px;
+    padding: 2px 4px;
 }}
 
 QLineEdit {{
@@ -323,7 +395,7 @@ QLineEdit {{
     color: {LightTheme.TEXT_COLOR};
     border: 1px solid {LightTheme.BORDER_COLOR};
     {f"min-height: {Layout.INPUT_HEIGHT}px; max-height: {Layout.INPUT_HEIGHT}px;" if Layout.INPUT_HEIGHT else ""}
-    padding: 4px;
+    padding: 2px 4px;
     border-radius: 3px;
     font-size: {Layout.FONT_SIZE}pt;
 }}
