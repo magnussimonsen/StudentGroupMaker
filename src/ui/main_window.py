@@ -13,6 +13,7 @@ from ..constants.colors_and_styling import (
 )
 from ..core import schedule_groups, schedule_quality
 from .widgets import ClassPanel, ControlsPanel, OutputPanel
+from .widgets.flow_layout import FlowLayout, make_group
 from .dialogs import show_about_dialog
 
 
@@ -43,7 +44,7 @@ class MainWindow(QMainWindow):
         
         layout = QVBoxLayout(central)
         layout.setContentsMargins(10, 10, 10, 10)  # Use standard margins
-        layout.setSpacing(10)  # Use standard spacing
+        layout.setSpacing(6)  # Compact spacing between toolbar rows
         
         # Create separate panels to extract controls from
         self.class_panel = ClassPanel()
@@ -51,56 +52,45 @@ class MainWindow(QMainWindow):
         self.controls_panel = ControlsPanel()
         self.controls_panel.generate_requested.connect(self._generate_groups)
         
-        # Row 2: Main controls row
-        controls_row = QHBoxLayout()
-        controls_row.setSpacing(10)  # Use standard spacing
+        # Row 2: Main controls row (wraps onto extra lines when the window is narrow)
+        controls_row = FlowLayout(spacing=10)
         
         # Class selector and new class controls
-        controls_row.addWidget(QLabel("Class:"))
-        controls_row.addWidget(self.class_panel.class_combo)
-        controls_row.addWidget(self.class_panel.new_class_name)
+        controls_row.addWidget(make_group(QLabel("Class:"), self.class_panel.class_combo))
         
         # Create new add class button since we need to extract it
         self.add_class_btn = QPushButton("Add class")
         self.add_class_btn.clicked.connect(self.class_panel._add_class)
-        controls_row.addWidget(self.add_class_btn)
+        controls_row.addWidget(make_group(self.class_panel.new_class_name, self.add_class_btn))
         
-        # Add separator
-        controls_row.addSpacing(20)  # Use standard section spacing
+        self.delete_class_btn = QPushButton("Delete class")
+        self.delete_class_btn.setObjectName("deleteClassButton")  # Styled red in the stylesheet
+        self.delete_class_btn.clicked.connect(self.class_panel._delete_class)
+        controls_row.addWidget(self.delete_class_btn)
         
         # Students per group selector
-        controls_row.addWidget(QLabel("Students/group:"))
-        controls_row.addWidget(self.controls_panel.num_students)
+        controls_row.addWidget(make_group(QLabel("Students/group:"), self.controls_panel.num_students))
         
         # Groups selector
-        controls_row.addWidget(QLabel("Groups:"))
-        controls_row.addWidget(self.controls_panel.num_groups)
+        controls_row.addWidget(make_group(QLabel("Groups:"), self.controls_panel.num_groups))
         
         # Rounds selector  
-        controls_row.addWidget(QLabel("Rounds:"))
-        controls_row.addWidget(self.controls_panel.num_rounds)
+        controls_row.addWidget(make_group(QLabel("Rounds:"), self.controls_panel.num_rounds))
         
         # Seed selector
-        controls_row.addWidget(QLabel("Seed:"))
-        controls_row.addWidget(self.controls_panel.random_seed)
+        controls_row.addWidget(make_group(QLabel("Seed:"), self.controls_panel.random_seed))
         
-        controls_row.addStretch()  # Push everything to the left
-        layout.addLayout(controls_row)
+        layout.addWidget(self._wrap_row(controls_row))
         
-        # Row 3: Action buttons row
-        buttons_row = QHBoxLayout()
-        buttons_row.setSpacing(10)  # Use standard spacing
+        # Row 3: Student actions bar (spans entire width)
+        self._create_student_actions_bar(layout)
+        
+        # Row 4: Action buttons row
+        buttons_row = FlowLayout(spacing=10)
         
         # Create new buttons since we need to extract them from panels
-        self.delete_class_btn = QPushButton("Delete class")
-        self.delete_class_btn.clicked.connect(self.class_panel._delete_class)
-        buttons_row.addWidget(self.delete_class_btn)
-        
-        self.save_class_btn = QPushButton("Save class list")
-        self.save_class_btn.clicked.connect(self.class_panel._save_class)
-        buttons_row.addWidget(self.save_class_btn)
-        
         self.generate_btn = QPushButton("Generate groups")
+        self.generate_btn.setObjectName("generateButton")  # Styled green in the stylesheet
         self.generate_btn.clicked.connect(self._on_generate_clicked)
         buttons_row.addWidget(self.generate_btn)
         
@@ -112,10 +102,9 @@ class MainWindow(QMainWindow):
         self.heatmap_btn.clicked.connect(self._on_heatmap_clicked)
         buttons_row.addWidget(self.heatmap_btn)
         
-        buttons_row.addStretch()  # Push everything to the left
-        layout.addLayout(buttons_row)
+        layout.addWidget(self._wrap_row(buttons_row))
         
-        # Row 4: Main panels (horizontal splitter)
+        # Row 5: Main panels (horizontal splitter)
         splitter = QSplitter(Qt.Horizontal)
 
         # Left side: Student list from class panel
@@ -125,12 +114,12 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(QLabel("Students:"))
         left_layout.addWidget(self.class_panel.student_list)
         # Enforce a sensible minimum width so the list and names remain readable
-        left_widget.setMinimumWidth(260)
+        left_widget.setMinimumWidth(180)
 
         # Right side: Output panel
         self.output_panel = OutputPanel()
         # Enforce a sensible minimum width so the output doesn't collapse
-        self.output_panel.setMinimumWidth(420)
+        self.output_panel.setMinimumWidth(280)
         
         splitter.addWidget(left_widget)
         splitter.addWidget(self.output_panel)
@@ -148,18 +137,16 @@ class MainWindow(QMainWindow):
         splitter.setSizes([400, 800])
         
         layout.addWidget(splitter, 1)  # This takes up remaining space
-        
-        # Row 5: Student actions bar (spans entire width)
-        self._create_student_actions_bar(layout)
     
     def _create_student_actions_bar(self, parent_layout):
-        """Create the bottom action bar for student management."""
+        """Create the action bar for student management."""
         from PySide6.QtWidgets import QLineEdit, QPushButton, QHBoxLayout, QLabel
         
-        students_row = QHBoxLayout()
+        students_row = FlowLayout(spacing=10)
         
         self.student_input = QLineEdit()
         self.student_input.setPlaceholderText("Add student…")
+        self.student_input.setMinimumWidth(200)
         
         btn_add_student = QPushButton("Add")
         btn_add_student.clicked.connect(self._add_student)
@@ -174,30 +161,35 @@ class MainWindow(QMainWindow):
         btn_none.clicked.connect(self._uncheck_all)
         
         students_row.addWidget(QLabel("Student actions:"))
-        students_row.addWidget(self.student_input, 2)
-        students_row.addWidget(btn_add_student)
+        students_row.addWidget(make_group(self.student_input, btn_add_student))
         students_row.addWidget(btn_remove_student)
         students_row.addWidget(btn_all)
         students_row.addWidget(btn_none)
-        students_row.addStretch()
         
-        parent_layout.addLayout(students_row)
+        parent_layout.addWidget(self._wrap_row(students_row))
+    
+    @staticmethod
+    def _wrap_row(flow_layout):
+        """Put a flow layout in its own widget so the row grows taller as it wraps."""
+        row = QWidget()
+        row.setLayout(flow_layout)
+        return row
     
     def _add_student(self):
-        """Add a student via the bottom bar."""
+        """Add a student via the student actions bar."""
         self.class_panel.add_student_from_input(self.student_input.text())
         self.student_input.clear()
     
     def _remove_checked_students(self):
-        """Remove checked students via the bottom bar."""
+        """Remove checked students via the student actions bar."""
         self.class_panel.remove_checked_students()
     
     def _check_all(self):
-        """Check all students via the bottom bar."""
+        """Check all students via the student actions bar."""
         self.class_panel.check_all_students()
     
     def _uncheck_all(self):
-        """Uncheck all students via the bottom bar."""
+        """Uncheck all students via the student actions bar."""
         self.class_panel.uncheck_all_students()
     
     def _on_export_clicked(self):
