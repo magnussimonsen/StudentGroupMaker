@@ -2,7 +2,9 @@
 
 from .class_data import (
     load_class,
+    load_class_records,
     save_class,
+    save_class_records,
     list_classes,
     delete_class,
     create_default_class,
@@ -12,7 +14,9 @@ from .storage import DATA_DIR, CLASSES_DIR, class_path, export_path
 
 __all__ = [
     "load_class",
+    "load_class_records",
     "save_class",
+    "save_class_records",
     "list_classes",
     "delete_class",
     "create_default_class",

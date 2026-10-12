@@ -2,7 +2,8 @@
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-    QSplitter, QMessageBox, QDialog, QPushButton, QLabel
+    QSplitter, QMessageBox, QDialog, QPushButton, QLabel, QStackedWidget,
+    QButtonGroup
 )
 from PySide6.QtCore import Qt
 
@@ -12,7 +13,7 @@ from ..constants.colors_and_styling import (
     get_dark_stylesheet, get_light_stylesheet
 )
 from ..core import schedule_groups, schedule_quality
-from .widgets import ClassPanel, ControlsPanel, OutputPanel
+from .widgets import ClassPanel, ClassSeatingPanel, ControlsPanel, OutputPanel
 from .widgets.flow_layout import FlowLayout, make_group
 from .dialogs import show_about_dialog
 
@@ -40,28 +41,86 @@ class MainWindow(QMainWindow):
     def _setup_ui(self):
         """Set up the main UI layout."""
         central = QWidget()
+        central_layout = QVBoxLayout(central)
+        central_layout.setContentsMargins(0, 0, 0, 0)
+        central_layout.setSpacing(0)
+
+        self.secondary_menubar = QWidget(central)
+        self.secondary_menubar.setObjectName("secondaryMenuBar")
+        self.secondary_menubar_layout = QHBoxLayout(self.secondary_menubar)
+        self.secondary_menubar_layout.setContentsMargins(4, 2, 4, 2)
+        self.secondary_menubar_layout.setSpacing(4)
+        central_layout.addWidget(self.secondary_menubar)
+
+        self.mode_stack = QStackedWidget()
+        central_layout.addWidget(self.mode_stack, 1)
         self.setCentralWidget(central)
+
+        self.student_groups_page = QWidget()
+        self.mode_stack.addWidget(self.student_groups_page)
+        self.class_seating_page = QWidget()
+        self.mode_stack.addWidget(self.class_seating_page)
         
-        layout = QVBoxLayout(central)
+        layout = QVBoxLayout(self.student_groups_page)
         layout.setContentsMargins(10, 10, 10, 10)  # Use standard margins
         layout.setSpacing(6)  # Compact spacing between toolbar rows
         
         # Create separate panels to extract controls from
         self.class_panel = ClassPanel()
         self.class_panel.class_changed.connect(self._on_class_changed)
+        self.class_panel.class_combo.setMinimumWidth(220)
+        self.class_seating_panel = ClassSeatingPanel(self.class_seating_page)
+        class_seating_layout = QVBoxLayout(self.class_seating_page)
+        class_seating_layout.setContentsMargins(0, 0, 0, 0)
+        class_seating_layout.addWidget(self.class_seating_panel)
+        self.class_panel.students_changed.connect(self.class_seating_panel.set_class)
+
+        self.seating_controls = {}
+        for label in ("Add row", "Remove row", "Add column", "Remove column", "Flip classroom"):
+            button = QPushButton(label)
+            button.hide()
+            self.secondary_menubar_layout.addWidget(button)
+            self.seating_controls[label] = button
+
+        self.seating_controls["Add row"].clicked.connect(
+            self.class_seating_panel.add_row
+        )
+        self.seating_controls["Remove row"].clicked.connect(
+            self.class_seating_panel.remove_row
+        )
+        self.seating_controls["Add column"].clicked.connect(
+            self.class_seating_panel.add_column
+        )
+        self.seating_controls["Remove column"].clicked.connect(
+            self.class_seating_panel.remove_column
+        )
+        self.seating_controls["Flip classroom"].clicked.connect(
+            self.class_seating_panel.flip_classroom
+        )
+        self.class_seating_panel.grid_dimensions_changed.connect(
+            self._update_seating_controls
+        )
+        self.class_seating_panel.set_class(
+            self.class_panel.get_current_class_name(),
+            self.class_panel.get_student_records(),
+        )
+
+        self.secondary_menubar_layout.addStretch(1)
         self.controls_panel = ControlsPanel()
         self.controls_panel.generate_requested.connect(self._generate_groups)
         
         # Row 2: Main controls row (wraps onto extra lines when the window is narrow)
         controls_row = FlowLayout(spacing=10)
         
-        # Class selector and new class controls
-        controls_row.addWidget(make_group(QLabel("Class:"), self.class_panel.class_combo))
-        
         # Create new add class button since we need to extract it
         self.add_class_btn = QPushButton("Add class")
         self.add_class_btn.clicked.connect(self.class_panel._add_class)
-        controls_row.addWidget(make_group(self.class_panel.new_class_name, self.add_class_btn))
+        self.new_class_group = make_group(
+            self.class_panel.class_combo,
+            self.class_panel.new_class_name,
+            self.add_class_btn,
+        )
+        controls_row.addWidget(self.new_class_group)
         
         self.delete_class_btn = QPushButton("Delete class")
         self.delete_class_btn.setObjectName("deleteClassButton")  # Styled red in the stylesheet
@@ -241,6 +300,33 @@ class MainWindow(QMainWindow):
     def _setup_menu(self):
         """Set up the menu bar."""
         menubar = self.menuBar()
+
+        self.mode_button_group = QButtonGroup(self)
+        self.mode_button_group.setExclusive(True)
+
+        self.mode_selector = QWidget(menubar)
+        mode_selector_layout = QHBoxLayout(self.mode_selector)
+        mode_selector_layout.setContentsMargins(4, 0, 4, 0)
+        mode_selector_layout.setSpacing(4)
+
+        self.student_groups_button = QPushButton("Student Groups")
+        self.student_groups_button.setObjectName("modeSelectorButton")
+        self.student_groups_button.setCheckable(True)
+        self.student_groups_button.setChecked(True)
+        self.mode_button_group.addButton(self.student_groups_button)
+        self.student_groups_button.clicked.connect(
+            lambda: self._set_mode("student_groups")
+        )
+        mode_selector_layout.addWidget(self.student_groups_button)
+
+        self.class_seating_button = QPushButton("Class Seating")
+        self.class_seating_button.setObjectName("modeSelectorButton")
+        self.class_seating_button.setCheckable(True)
+        self.mode_button_group.addButton(self.class_seating_button)
+        self.class_seating_button.clicked.connect(
+            lambda: self._set_mode("class_seating")
+        )
+        mode_selector_layout.addWidget(self.class_seating_button)
         
         # View menu
         view_menu = menubar.addMenu("View")
@@ -267,6 +353,34 @@ class MainWindow(QMainWindow):
         for size in ["8", "9", "10", "11", "12", "14", "16", "18", "20", "24"]:
             action = font_menu.addAction(f"{size}pt")
             action.triggered.connect(lambda checked, s=size: self._on_font_size_changed(int(s)))
+
+        menubar.setCornerWidget(self.mode_selector, Qt.TopRightCorner)
+
+        self._set_mode("student_groups")
+
+    def _set_mode(self, mode: str):
+        """Switch the main view and show controls belonging to the selected mode."""
+        is_class_seating = mode == "class_seating"
+        page = self.class_seating_page if is_class_seating else self.student_groups_page
+        self.mode_stack.setCurrentWidget(page)
+        if is_class_seating:
+            self.new_class_group.layout().removeWidget(self.class_panel.class_combo)
+            self.secondary_menubar_layout.insertWidget(0, self.class_panel.class_combo)
+        else:
+            self.secondary_menubar_layout.removeWidget(self.class_panel.class_combo)
+            self.new_class_group.layout().insertWidget(
+                0, self.class_panel.class_combo
+            )
+        self.secondary_menubar.setVisible(is_class_seating)
+        for button in self.seating_controls.values():
+            button.setVisible(is_class_seating)
+
+    def _update_seating_controls(self, rows: int, columns: int):
+        """Enable dimension controls only when the grid can change that way."""
+        self.seating_controls["Add row"].setEnabled(rows < 15)
+        self.seating_controls["Remove row"].setEnabled(rows > 1)
+        self.seating_controls["Add column"].setEnabled(columns < 12)
+        self.seating_controls["Remove column"].setEnabled(columns > 1)
     
     def _on_class_changed(self, name: str):
         """Handle class selection change."""

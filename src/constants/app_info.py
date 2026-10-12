@@ -1,8 +1,8 @@
 """Application constants and metadata."""
 
 APP_NAME = "GroupMaker"
-VERSION = "0.5.0"
-AUTHOR = "Magnus Simonsen / Claude Sonnet"
+VERSION = "0.7.0"
+AUTHOR = "Magnus Simonsen / Claude"
 AUTHOR_COPYRIGHT = "Magnus Simonsen"
 DESCRIPTION = "A simple desktop application for teachers to create random student groups with minimal pair repetition."
 REPOSITORY = "https://github.com/magnussimonsen/StudentGroupMaker"
@@ -37,4 +37,26 @@ DEFAULT_STUDENTS = [
     "Julie Budet",
     "Mark Ruffalo",
     "Dua Lipa",
+]
+
+DEFAULT_MATH102_STUDENTS = [
+    "Alex Morgan",
+    "Amelia Hart",
+    "Ben Carter",
+    "Chloe Bennett",
+    "Daniel Foster",
+    "Ella Brooks",
+    "Ethan Cole",
+    "Grace Parker",
+    "Henry James",
+    "Isla Reed",
+    "Jack Turner",
+    "Lily Cooper",
+    "Mason Ward",
+    "Mia Kelly",
+    "Noah Price",
+    "Olivia Ross",
+    "Oscar Bell",
+    "Sophie Bailey",
+    "William Gray",
 ]

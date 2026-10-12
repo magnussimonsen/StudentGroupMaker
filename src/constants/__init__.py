@@ -9,6 +9,7 @@ from .app_info import (
     REPOSITORY,
     FEATURES,
     DEFAULT_STUDENTS,
+    DEFAULT_MATH102_STUDENTS,
 )
 from .license import MIT_LICENSE_TEXT, MIT_LICENSE_HTML
 from .start_values import (
@@ -26,6 +27,7 @@ __all__ = [
     "REPOSITORY",
     "FEATURES",
     "DEFAULT_STUDENTS",
+    "DEFAULT_MATH102_STUDENTS",
     "MIT_LICENSE_TEXT",
     "MIT_LICENSE_HTML",
     "DEFAULT_STUDENTS_PER_GROUP",
