@@ -320,3 +320,17 @@ class ClassPanel(QWidget):
     def get_current_class_name(self) -> str:
         """Get the currently selected class name."""
         return self.class_combo.currentText()
+
+    def refresh_classes(self, select_name: str | None = None):
+        """Reload class names after an import and publish the selected roster."""
+        current_name = select_name or self.class_combo.currentText()
+        self.class_combo.blockSignals(True)
+        self.class_combo.clear()
+        self.class_combo.addItems(list_classes())
+        index = self.class_combo.findText(current_name)
+        if index >= 0:
+            self.class_combo.setCurrentIndex(index)
+        elif self.class_combo.count():
+            self.class_combo.setCurrentIndex(0)
+        self.class_combo.blockSignals(False)
+        self._on_class_changed(self.class_combo.currentText())

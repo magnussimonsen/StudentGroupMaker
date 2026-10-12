@@ -3,9 +3,11 @@
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QSplitter, QMessageBox, QDialog, QPushButton, QLabel, QStackedWidget,
-    QButtonGroup
+    QButtonGroup, QListWidget, QListWidgetItem, QDialogButtonBox,
+    QFileDialog, QCheckBox, QAbstractItemView
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QStandardPaths
+from pathlib import Path
 
 from ..constants import APP_NAME, VERSION, REPOSITORY
 from ..constants.colors_and_styling import (
@@ -13,6 +15,7 @@ from ..constants.colors_and_styling import (
     get_dark_stylesheet, get_light_stylesheet
 )
 from ..core import schedule_groups, schedule_quality
+from ..models import export_classes, import_classes, list_classes
 from .widgets import ClassPanel, ClassSeatingPanel, ControlsPanel, OutputPanel
 from .widgets.flow_layout import FlowLayout, make_group
 from .dialogs import show_about_dialog
@@ -309,6 +312,14 @@ class MainWindow(QMainWindow):
         mode_selector_layout.setContentsMargins(4, 0, 4, 0)
         mode_selector_layout.setSpacing(4)
 
+        self.export_classes_button = QPushButton("Export classes")
+        self.export_classes_button.clicked.connect(self._show_export_classes_dialog)
+        mode_selector_layout.addWidget(self.export_classes_button)
+
+        self.import_classes_button = QPushButton("Import classes")
+        self.import_classes_button.clicked.connect(self._on_import_classes_clicked)
+        mode_selector_layout.addWidget(self.import_classes_button)
+
         self.student_groups_button = QPushButton("Student Groups")
         self.student_groups_button.setObjectName("modeSelectorButton")
         self.student_groups_button.setCheckable(True)
@@ -357,6 +368,134 @@ class MainWindow(QMainWindow):
         menubar.setCornerWidget(self.mode_selector, Qt.TopRightCorner)
 
         self._set_mode("student_groups")
+
+    def _show_export_classes_dialog(self):
+        """Let the user choose classes for a single Desktop export bundle."""
+        classes = list_classes()
+        if not classes:
+            QMessageBox.information(self, "Export classes", "There are no classes to export.")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Export classes")
+        dialog.setMinimumWidth(320)
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(QLabel("Select the classes to include:"))
+
+        class_list = QListWidget(dialog)
+        class_list.setSelectionMode(QAbstractItemView.NoSelection)
+        for class_name in classes:
+            item = QListWidgetItem(class_name, class_list)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(Qt.Checked)
+        layout.addWidget(class_list)
+
+        select_all = QCheckBox("Select all", dialog)
+        select_all.setChecked(True)
+        select_all.setTristate(True)
+
+        def set_class_checks(state: int):
+            if state == Qt.PartiallyChecked:
+                return
+            class_list.blockSignals(True)
+            check_state = Qt.Checked if state == Qt.Checked else Qt.Unchecked
+            for index in range(class_list.count()):
+                class_list.item(index).setCheckState(check_state)
+            class_list.blockSignals(False)
+
+        def update_select_all(_item: QListWidgetItem):
+            checked_count = sum(
+                class_list.item(index).checkState() == Qt.Checked
+                for index in range(class_list.count())
+            )
+            if checked_count == 0:
+                state = Qt.Unchecked
+            elif checked_count == class_list.count():
+                state = Qt.Checked
+            else:
+                state = Qt.PartiallyChecked
+            select_all.blockSignals(True)
+            select_all.setCheckState(state)
+            select_all.blockSignals(False)
+
+        select_all.stateChanged.connect(set_class_checks)
+        class_list.itemChanged.connect(update_select_all)
+        layout.addWidget(select_all)
+
+        button_box = QDialogButtonBox(dialog)
+        button_box.addButton("Export to Desktop", QDialogButtonBox.AcceptRole)
+        button_box.addButton(QDialogButtonBox.Cancel)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+
+        if dialog.exec() != QDialog.Accepted:
+            return
+        selected_classes = [
+            class_list.item(index).text()
+            for index in range(class_list.count())
+            if class_list.item(index).checkState() == Qt.Checked
+        ]
+        if not selected_classes:
+            QMessageBox.information(
+                self, "Export classes", "Select at least one class to export."
+            )
+            return
+
+        desktop = QStandardPaths.writableLocation(QStandardPaths.DesktopLocation)
+        if not desktop or not Path(desktop).is_dir():
+            QMessageBox.warning(
+                self, "Export classes", "The Desktop folder could not be found."
+            )
+            return
+        destination = Path(desktop) / "GroupMaker_classes.json"
+        if destination.exists():
+            reply = QMessageBox.question(
+                self,
+                "Replace export file",
+                f"'{destination.name}' already exists on the Desktop. Replace it?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
+                return
+
+        try:
+            export_classes(selected_classes, destination)
+        except (OSError, ValueError) as error:
+            QMessageBox.critical(self, "Export failed", str(error))
+            return
+        QMessageBox.information(
+            self, "Classes exported", f"Saved {len(selected_classes)} class(es) to:\n{destination}"
+        )
+
+    def _on_import_classes_clicked(self):
+        """Import classes and their saved seating charts from a JSON bundle."""
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import classes",
+            "",
+            "GroupMaker class exports (*.json);;JSON files (*.json)",
+        )
+        if not filename:
+            return
+        try:
+            imported = import_classes(Path(filename))
+        except (OSError, ValueError) as error:
+            QMessageBox.critical(self, "Import failed", str(error))
+            return
+
+        first_imported_name = imported[0][1]
+        self.class_panel.refresh_classes(first_imported_name)
+        details = "\n".join(
+            f"{source} imported as {destination}"
+            if source != destination
+            else f"{source} imported"
+            for source, destination in imported
+        )
+        QMessageBox.information(
+            self, "Classes imported", f"Imported {len(imported)} class(es):\n{details}"
+        )
 
     def _set_mode(self, mode: str):
         """Switch the main view and show controls belonging to the selected mode."""
