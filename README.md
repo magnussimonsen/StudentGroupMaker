@@ -13,15 +13,16 @@ Create random student groups with minimal pair repetition. Built with Python + P
 	- https://github.com/magnussimonsen/StudentGroupMaker/releases/latest
 
 ## Features
-- Manage classes; mark present students
-- Export selected classes with their seating charts to one JSON file and import them later
-- Switch between student group generation and the class seating organizer
-- Create, rename, and manage multiple saved seating charts per class
-- Arrange students in saved classroom seating layouts using drag and drop
-- Configurable groups, rounds, and seed (0 = Random)
-- Quality score and co‑occurrence heatmap
-- Export plan to .txt
-- Light/Dark theme and adjustable font size
+- Manage multiple classes and student rosters; mark attendance and keep student identities stable when names change
+- Export selected classes to one JSON file on the Desktop and import them later, including all saved seating charts
+- Switch between Student Groups and Class Seating modes
+- Create, rename, and delete multiple saved seating charts for each class
+- Arrange and move students between seats and the unseated list using drag and drop
+- Adjust classroom rows and columns, view spreadsheet-style seat labels, and flip the classroom orientation
+- Generate configurable student groups and rounds, with a seed value (0 = random)
+- Review schedule quality and student co-occurrence with the heatmap
+- Export generated group plans to a text file
+- Choose a light or dark theme and adjust the application font size
 
 ## Run from source
 ```bash
