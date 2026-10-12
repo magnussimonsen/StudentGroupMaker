@@ -195,6 +195,20 @@ QPushButton#generateButton:pressed {{
     background-color: {DarkTheme.SUCCESS_BG_COLOR_PRESSED};
 }}
 
+QPushButton#modeSelectorButton {{
+    min-height: 0;
+    max-height: 28px;
+    padding: 2px 8px;
+}}
+QPushButton#modeSelectorButton:checked {{
+    background-color: {DarkTheme.SUCCESS_BG_COLOR};
+    border: 1px solid {DarkTheme.SUCCESS_BG_COLOR_PRESSED};
+    color: {DarkTheme.SUCCESS_TEXT_COLOR};
+}}
+QPushButton#modeSelectorButton:checked:hover {{
+    background-color: {DarkTheme.SUCCESS_BG_COLOR_HOVER};
+}}
+
 QComboBox {{
     background-color: {DarkTheme.DROPDOWN_BG_COLOR};
     color: {DarkTheme.TEXT_COLOR};
@@ -271,6 +285,10 @@ QMenuBar {{
     border-bottom: 1px solid {DarkTheme.BORDER_COLOR};
     spacing: {Layout.WIDGET_SPACING_TIGHT}px;
     font-size: {Layout.FONT_SIZE}pt;
+}}
+QWidget#secondaryMenuBar {{
+    background-color: {DarkTheme.MAIN_WINDOW_COLOR};
+    border-bottom: 1px solid {DarkTheme.BORDER_COLOR};
 }}
 QMenuBar::item {{
     background-color: transparent;
@@ -382,6 +400,20 @@ QPushButton#generateButton:pressed {{
     background-color: {LightTheme.SUCCESS_BG_COLOR_PRESSED};
 }}
 
+QPushButton#modeSelectorButton {{
+    min-height: 0;
+    max-height: 28px;
+    padding: 2px 8px;
+}}
+QPushButton#modeSelectorButton:checked {{
+    background-color: {LightTheme.SUCCESS_BG_COLOR};
+    border: 1px solid {LightTheme.SUCCESS_BG_COLOR_PRESSED};
+    color: {LightTheme.SUCCESS_TEXT_COLOR};
+}}
+QPushButton#modeSelectorButton:checked:hover {{
+    background-color: {LightTheme.SUCCESS_BG_COLOR_HOVER};
+}}
+
 QComboBox {{
     background-color: {LightTheme.DROPDOWN_BG_COLOR};
     color: {LightTheme.TEXT_COLOR};
@@ -458,6 +490,10 @@ QMenuBar {{
     border-bottom: 1px solid {LightTheme.BORDER_COLOR};
     spacing: {Layout.WIDGET_SPACING_TIGHT}px;
     font-size: {Layout.FONT_SIZE}pt;
+}}
+QWidget#secondaryMenuBar {{
+    background-color: {LightTheme.MAIN_WINDOW_COLOR};
+    border-bottom: 1px solid {LightTheme.BORDER_COLOR};
 }}
 QMenuBar::item {{
     background-color: transparent;

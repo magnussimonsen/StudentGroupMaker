@@ -14,6 +14,9 @@ Create random student groups with minimal pair repetition. Built with Python + P
 
 ## Features
 - Manage classes; mark present students
+- Switch between student group generation and the class seating organizer
+- Create, rename, and manage multiple saved seating charts per class
+- Arrange students in saved classroom seating layouts using drag and drop
 - Configurable groups, rounds, and seed (0 = Random)
 - Quality score and co‑occurrence heatmap
 - Export plan to .txt

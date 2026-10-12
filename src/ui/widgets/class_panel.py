@@ -1,5 +1,7 @@
 """Class management panel (left panel)."""
 
+from uuid import uuid4
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
@@ -8,13 +10,16 @@ from PySide6.QtWidgets import (
 )
 
 from ...constants.colors_and_styling import Layout
-from ...models import load_class, save_class, list_classes, delete_class
+from ...models import (
+    load_class_records, save_class, save_class_records, list_classes, delete_class,
+)
 
 
 class ClassPanel(QWidget):
     """Left panel for class and student management."""
     
     class_changed = Signal(str)  # Emitted when active class changes
+    students_changed = Signal(str, list)
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -69,6 +74,7 @@ class ClassPanel(QWidget):
         self.student_list = QListWidget()
         # Keep interaction simple: use checkboxes for attendance/removal, not list selection.
         self.student_list.setSelectionMode(QListWidget.NoSelection)
+        self.student_list.itemChanged.connect(self._on_student_item_changed)
         
         # Add to main layout
         layout.addLayout(classes_row)
@@ -84,23 +90,60 @@ class ClassPanel(QWidget):
     def _on_class_changed(self, name: str):
         """Handle class selection change."""
         self.student_list.clear()
-        if not name:
-            return
-        
-        for student in load_class(name):
-            self._add_student_item(student, checked=True)
-        
+        if name:
+            for student in load_class_records(name):
+                self._add_student_item(
+                    student["name"],
+                    checked=True,
+                    student_id=student["id"],
+                )
         self.class_changed.emit(name)
-    
-    def _add_student_item(self, name: str, checked: bool = True):
+        self.students_changed.emit(name, self.get_student_records())
+
+    def _add_student_item(
+        self, name: str, checked: bool = True, student_id: str | None = None
+    ):
         """Add a student to the list."""
         item = QListWidgetItem(name)
         item.setFlags(
             item.flags() | Qt.ItemIsUserCheckable | 
             Qt.ItemIsEditable | Qt.ItemIsSelectable | Qt.ItemIsEnabled
         )
+        item.setData(Qt.UserRole, student_id or uuid4().hex)
+        item.setData(Qt.UserRole + 1, name)
         item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
         self.student_list.addItem(item)
+
+    def _on_student_item_changed(self, item: QListWidgetItem):
+        """Save valid student-name edits while ignoring checkbox changes."""
+        previous_name = item.data(Qt.UserRole + 1)
+        new_name = item.text().strip()
+        if new_name == previous_name:
+            return
+
+        existing_names = {
+            self.student_list.item(index).text().strip()
+            for index in range(self.student_list.count())
+            if self.student_list.item(index) is not item
+        }
+        if not new_name or new_name in existing_names:
+            self.student_list.blockSignals(True)
+            item.setText(previous_name)
+            self.student_list.blockSignals(False)
+            QMessageBox.warning(
+                self,
+                "Student name",
+                "Student names must be non-empty and unique within the class.",
+            )
+            return
+
+        self.student_list.blockSignals(True)
+        item.setText(new_name)
+        item.setData(Qt.UserRole + 1, new_name)
+        self.student_list.blockSignals(False)
+        class_name = self.class_combo.currentText()
+        if class_name and isinstance(previous_name, str):
+            self._auto_save_class()
     
     def _add_class(self):
         """Add a new class."""
@@ -144,7 +187,9 @@ class ClassPanel(QWidget):
         
         # Sort students alphabetically by first name before saving (and update UI order)
         self._sort_students_by_first_name()
-        save_class(name, self.get_all_students())
+        students = self.get_student_records()
+        save_class_records(name, students)
+        self.students_changed.emit(name, students)
 
     def _sort_students_by_first_name(self):
         """Sort the student list by first name (case-insensitive) and update the UI order.
@@ -156,7 +201,8 @@ class ClassPanel(QWidget):
             item = self.student_list.item(i)
             name = item.text().strip()
             checked = (item.checkState() == Qt.Checked)
-            items.append((name, checked))
+            student_id = item.data(Qt.UserRole)
+            items.append((name, checked, student_id))
 
         # Sort by first token (first name), case-insensitive; tie-breaker on full name
         def sort_key(entry):
@@ -168,8 +214,8 @@ class ClassPanel(QWidget):
 
         # Rebuild list to reflect sorted order while preserving check states
         self.student_list.clear()
-        for name, checked in items:
-            self._add_student_item(name, checked=checked)
+        for name, checked, student_id in items:
+            self._add_student_item(name, checked=checked, student_id=student_id)
     
     def _add_student(self):
         """Add a student to the list."""
@@ -251,6 +297,16 @@ class ClassPanel(QWidget):
     def get_all_students(self) -> list[str]:
         """Get all students (checked and unchecked)."""
         return [self.student_list.item(i).text() for i in range(self.student_list.count())]
+
+    def get_student_records(self) -> list[dict[str, str]]:
+        """Get student IDs and names for identity-aware features."""
+        return [
+            {
+                "id": self.student_list.item(i).data(Qt.UserRole),
+                "name": self.student_list.item(i).text(),
+            }
+            for i in range(self.student_list.count())
+        ]
     
     def get_present_students(self) -> list[str]:
         """Get only checked (present) students."""
