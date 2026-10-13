@@ -27,6 +27,8 @@ _DEFAULT_ROWS = 5
 _DEFAULT_COLUMNS = 6
 _MAX_ROWS = 15
 _MAX_COLUMNS = 12
+_ROW_HEIGHT = 72
+_EMPTY_LINE_SCALE = 0.5  # Rows/columns without students are drawn at half size
 
 
 def _decode_student_mime(mime_data: QMimeData) -> dict | None:
@@ -115,10 +117,44 @@ class SeatingTable(QTableWidget):
         self.verticalHeader().setDefaultAlignment(Qt.AlignCenter)
         self.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
         self.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.verticalHeader().setDefaultSectionSize(72)
+        # Column widths are set by _update_column_widths so empty columns can be narrower
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.verticalHeader().setDefaultSectionSize(_ROW_HEIGHT)
+        self.verticalHeader().setMinimumSectionSize(int(_ROW_HEIGHT * _EMPTY_LINE_SCALE))
         self.verticalHeader().setMinimumWidth(36)
-        self.horizontalHeader().setMinimumSectionSize(48)
+        self.horizontalHeader().setMinimumSectionSize(24)
+        self._empty_columns: set[int] = set()
+
+    def set_empty_lines(self, empty_rows: set[int], empty_columns: set[int]):
+        """Shrink rows and columns that have no seated students."""
+        for row in range(self.rowCount()):
+            scale = _EMPTY_LINE_SCALE if row in empty_rows else 1
+            self.setRowHeight(row, int(_ROW_HEIGHT * scale))
+        self._empty_columns = set(empty_columns)
+        self._update_column_widths()
+
+    def _update_column_widths(self):
+        """Fill the available width, giving empty columns a reduced share."""
+        columns = self.columnCount()
+        if not columns:
+            return
+        weights = [
+            _EMPTY_LINE_SCALE if column in self._empty_columns else 1
+            for column in range(columns)
+        ]
+        unit = self.viewport().width() / sum(weights)
+        used = 0
+        for column, weight in enumerate(weights):
+            width = int(unit * weight)
+            if column == columns - 1:
+                width = self.viewport().width() - used  # Absorb rounding leftovers
+            self.setColumnWidth(column, width)
+            used += width
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_column_widths()
 
     def startDrag(self, supported_actions):
         index = self.currentIndex()
@@ -175,12 +211,13 @@ class ClassSeatingPanel(QWidget):
         super().__init__(parent)
         self.class_name = ""
         self.students: dict[str, str] = {}
-        self.charts: dict[str, list[list[str | None]]] = {}
-        self.active_chart = ""
         self.front_at_bottom: set[str] = set()
         self.seats: list[list[str | None]] = [
             [None] * _DEFAULT_COLUMNS for _ in range(_DEFAULT_ROWS)
         ]
+        # Start with a default chart so the panel works before any class exists
+        self.charts: dict[str, list[list[str | None]]] = {"Seating 1": self.seats}
+        self.active_chart = "Seating 1"
         self._setup_ui()
 
     def _setup_ui(self):
@@ -192,7 +229,6 @@ class ClassSeatingPanel(QWidget):
         students_panel = QWidget(splitter)
         students_layout = QVBoxLayout(students_panel)
         students_layout.setContentsMargins(0, 0, 8, 0)
-        students_layout.addWidget(QLabel("Students not seated"))
         self.available_students_hint = QLabel(
             "Drag a seated student here to unseat them."
         )
@@ -209,8 +245,10 @@ class ClassSeatingPanel(QWidget):
         classroom_layout.setContentsMargins(8, 0, 0, 0)
         self.front_label = QLabel("Front of the classroom", self)
         self.front_label.setAlignment(Qt.AlignCenter)
+        self.front_label.setObjectName("frontOfClassroomLabel")
         self.back_label = QLabel("Back of the classroom", self)
         self.back_label.setAlignment(Qt.AlignCenter)
+        self.back_label.setObjectName("backOfClassroomLabel")
         classroom_layout.addWidget(self.front_label)
         self.seating_table = SeatingTable(classroom_panel)
         self.seating_table.student_dropped.connect(self._drop_student)
@@ -476,6 +514,15 @@ class ClassSeatingPanel(QWidget):
                     flags |= Qt.ItemIsDragEnabled
                 item.setFlags(flags)
                 self.seating_table.setItem(row_index, column_index, item)
+        empty_rows = {
+            row_index for row_index, row in enumerate(self.seats)
+            if all(student_id is None for student_id in row)
+        }
+        empty_columns = {
+            column_index for column_index in range(columns)
+            if all(row[column_index] is None for row in self.seats)
+        }
+        self.seating_table.set_empty_lines(empty_rows, empty_columns)
         self.grid_dimensions_changed.emit(rows, columns)
 
     def _save_and_refresh(self):

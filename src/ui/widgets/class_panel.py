@@ -175,9 +175,10 @@ class ClassPanel(QWidget):
         
         if reply == QMessageBox.Yes:
             delete_class(name)
+            # Removing the item selects the next class (or none), which reloads
+            # the student list and notifies the other tabs via _on_class_changed.
             idx = self.class_combo.currentIndex()
             self.class_combo.removeItem(idx)
-            self.student_list.clear()
     
     def _auto_save_class(self):
         """Silently save the current class after its student list changes."""

@@ -59,6 +59,8 @@ class MainWindow(QMainWindow):
         central_layout.addWidget(self.mode_stack, 1)
         self.setCentralWidget(central)
 
+        self.edit_classes_page = QWidget()
+        self.mode_stack.addWidget(self.edit_classes_page)
         self.student_groups_page = QWidget()
         self.mode_stack.addWidget(self.student_groups_page)
         self.class_seating_page = QWidget()
@@ -97,6 +99,7 @@ class MainWindow(QMainWindow):
         self.seating_controls["Remove column"].clicked.connect(
             self.class_seating_panel.remove_column
         )
+        self.seating_controls["Flip classroom"].setObjectName("flipClassroomButton")
         self.seating_controls["Flip classroom"].clicked.connect(
             self.class_seating_panel.flip_classroom
         )
@@ -115,21 +118,10 @@ class MainWindow(QMainWindow):
         # Row 2: Main controls row (wraps onto extra lines when the window is narrow)
         controls_row = FlowLayout(spacing=10)
         
-        # Create new add class button since we need to extract it
-        self.add_class_btn = QPushButton("Add class")
-        self.add_class_btn.clicked.connect(self.class_panel._add_class)
-        self.new_class_group = make_group(
-            self.class_panel.class_combo,
-            self.class_panel.new_class_name,
-            self.add_class_btn,
-        )
-        controls_row.addWidget(self.new_class_group)
-        
-        self.delete_class_btn = QPushButton("Delete class")
-        self.delete_class_btn.setObjectName("deleteClassButton")  # Styled red in the stylesheet
-        self.delete_class_btn.clicked.connect(self.class_panel._delete_class)
-        controls_row.addWidget(self.delete_class_btn)
-        
+        # Class selector (the combo box is moved in here by _set_mode)
+        self.groups_class_group = make_group(QLabel("Class:"))
+        controls_row.addWidget(self.groups_class_group)
+
         # Students per group selector
         controls_row.addWidget(make_group(QLabel("Students/group:"), self.controls_panel.num_students))
         
@@ -144,29 +136,22 @@ class MainWindow(QMainWindow):
         
         layout.addWidget(self._wrap_row(controls_row))
         
-        # Row 3: Student actions bar (spans entire width)
-        self._create_student_actions_bar(layout)
-        
-        # Row 4: Action buttons row
-        buttons_row = FlowLayout(spacing=10)
-        
-        # Create new buttons since we need to extract them from panels
+        # Row 3: Student actions and group action buttons (spans entire width)
         self.generate_btn = QPushButton("Generate groups")
         self.generate_btn.setObjectName("generateButton")  # Styled green in the stylesheet
         self.generate_btn.clicked.connect(self._on_generate_clicked)
-        buttons_row.addWidget(self.generate_btn)
-        
+
         self.export_btn = QPushButton("Export plan as file")
         self.export_btn.clicked.connect(self._on_export_clicked)
-        buttons_row.addWidget(self.export_btn)
-        
+
         self.heatmap_btn = QPushButton("Show Co-occurrence Heatmap")
         self.heatmap_btn.clicked.connect(self._on_heatmap_clicked)
-        buttons_row.addWidget(self.heatmap_btn)
-        
-        layout.addWidget(self._wrap_row(buttons_row))
-        
-        # Row 5: Main panels (horizontal splitter)
+
+        self._create_student_actions_bar(
+            layout, self.generate_btn, self.export_btn, self.heatmap_btn
+        )
+
+        # Row 4: Main panels (horizontal splitter)
         splitter = QSplitter(Qt.Horizontal)
 
         # Left side: Student list from class panel
@@ -175,6 +160,7 @@ class MainWindow(QMainWindow):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(QLabel("Students:"))
         left_layout.addWidget(self.class_panel.student_list)
+        self.groups_students_layout = left_layout
         # Enforce a sensible minimum width so the list and names remain readable
         left_widget.setMinimumWidth(180)
 
@@ -199,35 +185,83 @@ class MainWindow(QMainWindow):
         splitter.setSizes([400, 800])
         
         layout.addWidget(splitter, 1)  # This takes up remaining space
-    
-    def _create_student_actions_bar(self, parent_layout):
-        """Create the action bar for student management."""
-        from PySide6.QtWidgets import QLineEdit, QPushButton, QHBoxLayout, QLabel
-        
+
+        self._create_edit_classes_page()
+
+    def _create_edit_classes_page(self):
+        """Create the page for adding/deleting classes and students."""
+        from PySide6.QtWidgets import QLineEdit
+
+        layout = QVBoxLayout(self.edit_classes_page)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(6)
+
+        # Row 1: Class actions
+        class_row = FlowLayout(spacing=10)
+
+        # Class selector (the combo box is moved in here by _set_mode)
+        self.edit_class_group = make_group(QLabel("Class:"))
+        class_row.addWidget(self.edit_class_group)
+
+        self.add_class_btn = QPushButton("Add class")
+        self.add_class_btn.clicked.connect(self.class_panel._add_class)
+        class_row.addWidget(make_group(self.class_panel.new_class_name, self.add_class_btn))
+
+        self.delete_class_btn = QPushButton("Delete class")
+        self.delete_class_btn.setObjectName("deleteClassButton")  # Styled red in the stylesheet
+        self.delete_class_btn.clicked.connect(self.class_panel._delete_class)
+        class_row.addWidget(self.delete_class_btn)
+
+        layout.addWidget(self._wrap_row(class_row))
+
+        # Row 2: Student actions
         students_row = FlowLayout(spacing=10)
-        
+
         self.student_input = QLineEdit()
         self.student_input.setPlaceholderText("Add student…")
         self.student_input.setMinimumWidth(200)
-        
-        btn_add_student = QPushButton("Add")
+
+        btn_add_student = QPushButton("Add student")
         btn_add_student.clicked.connect(self._add_student)
-        
+
         btn_remove_student = QPushButton("Remove checked student(s)")
         btn_remove_student.clicked.connect(self._remove_checked_students)
-        
+
         btn_all = QPushButton("Check all")
         btn_all.clicked.connect(self._check_all)
-        
+
         btn_none = QPushButton("Uncheck all")
         btn_none.clicked.connect(self._uncheck_all)
-        
-        students_row.addWidget(QLabel("Student actions:"))
+
         students_row.addWidget(make_group(self.student_input, btn_add_student))
         students_row.addWidget(btn_remove_student)
         students_row.addWidget(btn_all)
         students_row.addWidget(btn_none)
-        
+
+        layout.addWidget(self._wrap_row(students_row))
+
+        # Row 3: Student list (the list widget is moved in here by _set_mode)
+        layout.addWidget(QLabel("Students:"))
+        self.edit_students_layout = QVBoxLayout()
+        self.edit_students_layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(self.edit_students_layout, 1)
+
+    def _create_student_actions_bar(self, parent_layout, *extra_widgets):
+        """Create the check/uncheck bar for student attendance, followed by extra_widgets."""
+        students_row = FlowLayout(spacing=10)
+
+        btn_all = QPushButton("Check all")
+        btn_all.clicked.connect(self._check_all)
+
+        btn_none = QPushButton("Uncheck all")
+        btn_none.clicked.connect(self._uncheck_all)
+
+        students_row.addWidget(QLabel("Student actions:"))
+        students_row.addWidget(btn_all)
+        students_row.addWidget(btn_none)
+        for widget in extra_widgets:
+            students_row.addWidget(widget)
+
         parent_layout.addWidget(self._wrap_row(students_row))
     
     @staticmethod
@@ -311,6 +345,15 @@ class MainWindow(QMainWindow):
         mode_selector_layout = QHBoxLayout(self.mode_selector)
         mode_selector_layout.setContentsMargins(4, 0, 4, 0)
         mode_selector_layout.setSpacing(4)
+
+        self.edit_classes_button = QPushButton("Edit classes")
+        self.edit_classes_button.setObjectName("modeSelectorButton")
+        self.edit_classes_button.setCheckable(True)
+        self.mode_button_group.addButton(self.edit_classes_button)
+        self.edit_classes_button.clicked.connect(
+            lambda: self._set_mode("edit_classes")
+        )
+        mode_selector_layout.addWidget(self.edit_classes_button)
 
         self.export_classes_button = QPushButton("Export classes")
         self.export_classes_button.clicked.connect(self._show_export_classes_dialog)
@@ -500,16 +543,33 @@ class MainWindow(QMainWindow):
     def _set_mode(self, mode: str):
         """Switch the main view and show controls belonging to the selected mode."""
         is_class_seating = mode == "class_seating"
-        page = self.class_seating_page if is_class_seating else self.student_groups_page
-        self.mode_stack.setCurrentWidget(page)
-        if is_class_seating:
-            self.new_class_group.layout().removeWidget(self.class_panel.class_combo)
-            self.secondary_menubar_layout.insertWidget(0, self.class_panel.class_combo)
+        pages = {
+            "edit_classes": self.edit_classes_page,
+            "student_groups": self.student_groups_page,
+            "class_seating": self.class_seating_page,
+        }
+        self.mode_stack.setCurrentWidget(pages[mode])
+
+        # The class combo and student list are shared, so move them onto the active page
+        combo = self.class_panel.class_combo
+        combo_slots = {
+            "edit_classes": (self.edit_class_group.layout(), 1),
+            "student_groups": (self.groups_class_group.layout(), 1),
+            "class_seating": (self.secondary_menubar_layout, 0),
+        }
+        for slot_layout, _ in combo_slots.values():
+            slot_layout.removeWidget(combo)
+        slot_layout, index = combo_slots[mode]
+        slot_layout.insertWidget(index, combo)
+
+        student_list = self.class_panel.student_list
+        self.groups_students_layout.removeWidget(student_list)
+        self.edit_students_layout.removeWidget(student_list)
+        if mode == "edit_classes":
+            self.edit_students_layout.addWidget(student_list)
         else:
-            self.secondary_menubar_layout.removeWidget(self.class_panel.class_combo)
-            self.new_class_group.layout().insertWidget(
-                0, self.class_panel.class_combo
-            )
+            self.groups_students_layout.addWidget(student_list)
+
         self.secondary_menubar.setVisible(is_class_seating)
         for button in self.seating_controls.values():
             button.setVisible(is_class_seating)
