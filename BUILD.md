@@ -23,7 +23,7 @@ python3 create-python-venv-linux.py
 ### Windows (`dist\GroupMaker.exe`)
 
 From the project root in PowerShell:
-```powershell
+```powershellhen 
 .\.venv\Scripts\pyinstaller.exe --noconfirm .\GroupMaker.spec
 ```
 

@@ -40,12 +40,22 @@ class DarkTheme:
     SUCCESS_BG_COLOR_PRESSED = "#0b5a0b"  # Green button pressed background
     SUCCESS_TEXT_COLOR = "#ffffff"        # Text on green buttons
 
+    # Subtle accent (e.g. Flip classroom button)
+    ACCENT_SUBTLE_BG_COLOR = "#2d3f52"      # Soft blue-tinted background
+    ACCENT_SUBTLE_BORDER_COLOR = "#3f5a75"  # Soft blue-tinted border
+
+    # Classroom orientation labels (faded green front, faded red back)
+    FRONT_LABEL_BG_COLOR = "#2b4230"
+    FRONT_LABEL_BORDER_COLOR = "#3e6146"
+    BACK_LABEL_BG_COLOR = "#4a2e2e"
+    BACK_LABEL_BORDER_COLOR = "#6e4242"
+
     # Panel resize handle (QSplitter handle)
     SPLITTER_HANDLE_COLOR = MAIN_WINDOW_COLOR  # Color of the splitter handle
     SPLITTER_HANDLE_COLOR_HOVER = HOVER_BG_COLOR  # Color of the splitter handle on hover
 
     # Special purpose colors
-    HIGHLIGHT_BG_COLOR = "#2a82da"    # Selection/highlight background
+    HIGHLIGHT_BG_COLOR = "#2a82da"   # Selection/highlight background
     HIGHLIGHT_TEXT_COLOR = "#ffffff"  # Text on highlighted background
     LINK_COLOR = "#2a82da"            # Links
     BRIGHT_TEXT_COLOR = "#ff0000"     # Error/warning text
@@ -95,10 +105,20 @@ class LightTheme:
     SUCCESS_BG_COLOR_PRESSED = "#0b5a0b"  # Green button pressed background
     SUCCESS_TEXT_COLOR = "#ffffff"        # Text on green buttons
 
+    # Subtle accent (e.g. Flip classroom button)
+    ACCENT_SUBTLE_BG_COLOR = "#d6e8f8"      # Soft blue-tinted background
+    ACCENT_SUBTLE_BORDER_COLOR = "#a9cdee"  # Soft blue-tinted border
+
+    # Classroom orientation labels (faded green front, faded red back)
+    FRONT_LABEL_BG_COLOR = "#dff3df"
+    FRONT_LABEL_BORDER_COLOR = "#a8d8a8"
+    BACK_LABEL_BG_COLOR = "#f8dede"
+    BACK_LABEL_BORDER_COLOR = "#e4a9a9"
+
     # Panel resize handle (QSplitter handle)
     SPLITTER_HANDLE_COLOR = MAIN_WINDOW_COLOR  # Color of the splitter handle
     SPLITTER_HANDLE_COLOR_HOVER = HOVER_BG_COLOR  # Color of the splitter handle on hover
-    
+
     # Special purpose colors
     HIGHLIGHT_BG_COLOR = HOVER_BG_COLOR    # Selection/highlight background
     HIGHLIGHT_TEXT_COLOR = "#ffffff"  # Text on highlighted background
@@ -209,6 +229,22 @@ QPushButton#modeSelectorButton:checked:hover {{
     background-color: {DarkTheme.SUCCESS_BG_COLOR_HOVER};
 }}
 
+QPushButton#flipClassroomButton {{
+    background-color: {DarkTheme.ACCENT_SUBTLE_BG_COLOR};
+    border: 1px solid {DarkTheme.ACCENT_SUBTLE_BORDER_COLOR};
+    font-weight: bold;
+}}
+QPushButton#flipClassroomButton:hover {{
+    background-color: {DarkTheme.HOVER_BG_COLOR};
+    border: 1px solid {DarkTheme.BORDER_COLOR_HOVER};
+    color: {DarkTheme.TEXT_COLOR_HOVER};
+}}
+QPushButton#flipClassroomButton:pressed {{
+    background-color: {DarkTheme.BUTTON_PRESSED_BG_COLOR};
+    border: 1px solid {DarkTheme.BORDER_COLOR_HOVER};
+    color: {DarkTheme.BUTTON_PRESSED_TEXT_COLOR};
+}}
+
 QComboBox {{
     background-color: {DarkTheme.DROPDOWN_BG_COLOR};
     color: {DarkTheme.TEXT_COLOR};
@@ -235,6 +271,19 @@ QLabel {{
     color: {DarkTheme.TEXT_COLOR};
     font-size: {Layout.FONT_SIZE}pt;
     {f"min-height: {Layout.LABEL_HEIGHT}px;" if Layout.LABEL_HEIGHT else ""}
+}}
+QLabel#frontOfClassroomLabel, QLabel#backOfClassroomLabel {{
+    border-radius: 3px;
+    padding: 4px;
+    font-weight: bold;
+}}
+QLabel#frontOfClassroomLabel {{
+    background-color: {DarkTheme.FRONT_LABEL_BG_COLOR};
+    border: 1px solid {DarkTheme.FRONT_LABEL_BORDER_COLOR};
+}}
+QLabel#backOfClassroomLabel {{
+    background-color: {DarkTheme.BACK_LABEL_BG_COLOR};
+    border: 1px solid {DarkTheme.BACK_LABEL_BORDER_COLOR};
 }}
 
 QComboBox:hover {{
@@ -414,6 +463,22 @@ QPushButton#modeSelectorButton:checked:hover {{
     background-color: {LightTheme.SUCCESS_BG_COLOR_HOVER};
 }}
 
+QPushButton#flipClassroomButton {{
+    background-color: {LightTheme.ACCENT_SUBTLE_BG_COLOR};
+    border: 1px solid {LightTheme.ACCENT_SUBTLE_BORDER_COLOR};
+    font-weight: bold;
+}}
+QPushButton#flipClassroomButton:hover {{
+    background-color: {LightTheme.HOVER_BG_COLOR};
+    border: 1px solid {LightTheme.BORDER_COLOR_HOVER};
+    color: {LightTheme.TEXT_COLOR_HOVER};
+}}
+QPushButton#flipClassroomButton:pressed {{
+    background-color: {LightTheme.BUTTON_PRESSED_BG_COLOR};
+    border: 1px solid {LightTheme.BORDER_COLOR_HOVER};
+    color: {LightTheme.BUTTON_PRESSED_TEXT_COLOR};
+}}
+
 QComboBox {{
     background-color: {LightTheme.DROPDOWN_BG_COLOR};
     color: {LightTheme.TEXT_COLOR};
@@ -440,6 +505,19 @@ QLabel {{
     color: {LightTheme.TEXT_COLOR};
     font-size: {Layout.FONT_SIZE}pt;
     {f"min-height: {Layout.LABEL_HEIGHT}px;" if Layout.LABEL_HEIGHT else ""}
+}}
+QLabel#frontOfClassroomLabel, QLabel#backOfClassroomLabel {{
+    border-radius: 3px;
+    padding: 4px;
+    font-weight: bold;
+}}
+QLabel#frontOfClassroomLabel {{
+    background-color: {LightTheme.FRONT_LABEL_BG_COLOR};
+    border: 1px solid {LightTheme.FRONT_LABEL_BORDER_COLOR};
+}}
+QLabel#backOfClassroomLabel {{
+    background-color: {LightTheme.BACK_LABEL_BG_COLOR};
+    border: 1px solid {LightTheme.BACK_LABEL_BORDER_COLOR};
 }}
 
 QComboBox:hover {{
