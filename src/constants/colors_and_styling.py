@@ -310,8 +310,11 @@ QComboBox QAbstractItemView::item:hover {{
     color: {DarkTheme.TEXT_COLOR_HOVER};
 }}
 
-/* Ensure consistent selection highlight across list/tree/table views */
+/* Consistent font size and selection highlight across list/tree/table views.
+   The explicit font-size also covers combo box popups, which on Windows otherwise
+   keep Qt's 9pt platform default for item views. */
 QAbstractItemView {{
+    font-size: {Layout.FONT_SIZE}pt;
     selection-background-color: {DarkTheme.HIGHLIGHT_BG_COLOR};
     selection-color: {DarkTheme.HIGHLIGHT_TEXT_COLOR};
 }}
@@ -544,8 +547,11 @@ QComboBox QAbstractItemView::item:hover {{
     color: {LightTheme.TEXT_COLOR_HOVER};
 }}
 
-/* Ensure consistent selection highlight across list/tree/table views */
+/* Consistent font size and selection highlight across list/tree/table views.
+   The explicit font-size also covers combo box popups, which on Windows otherwise
+   keep Qt's 9pt platform default for item views. */
 QAbstractItemView {{
+    font-size: {Layout.FONT_SIZE}pt;
     selection-background-color: {LightTheme.HIGHLIGHT_BG_COLOR};
     selection-color: {LightTheme.HIGHLIGHT_TEXT_COLOR};
 }}

@@ -5,6 +5,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QFont, QIcon
 
+from .constants.colors_and_styling import Layout
 from .ui import MainWindow
 from .models import create_default_class
 
@@ -34,9 +35,9 @@ def main() -> int:
     icon_rel = "src/icons/icon.ico" if sys.platform.startswith("win") else "src/icons/icon.png"
     app.setWindowIcon(QIcon(resource_path(icon_rel)))
 
-    # Set initial application-wide font size
+    # Set initial application-wide font size (MainWindow re-applies it once built)
     font = QFont()
-    font.setPointSize(11)  # Default size matching controls panel
+    font.setPointSize(Layout.FONT_SIZE)
     app.setFont(font)
 
     # Ensure default class exists

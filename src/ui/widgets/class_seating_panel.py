@@ -1,11 +1,13 @@
 """Class seating organizer with drag-and-drop student assignment."""
 
 import json
+from pathlib import Path
 
-from PySide6.QtCore import QByteArray, QMimeData, Qt, Signal
+from PySide6.QtCore import QByteArray, QMimeData, QStandardPaths, Qt, Signal
 from PySide6.QtGui import QDrag
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QFileDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -629,3 +631,26 @@ class ClassSeatingPanel(QWidget):
             self.front_at_bottom.add(self.active_chart)
         self._update_front_label_position()
         self._save_and_refresh()
+
+    def export_png(self):
+        """Save the classroom view (labels and seat grid) as a PNG image."""
+        desktop = QStandardPaths.writableLocation(QStandardPaths.DesktopLocation)
+        default_name = f"{self.class_name or 'class'} - {self.active_chart}.png"
+        filename, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export seating as PNG",
+            str(Path(desktop or "") / default_name),
+            "PNG images (*.png)",
+        )
+        if not filename:
+            return
+        if not filename.lower().endswith(".png"):
+            filename += ".png"
+
+        # Hide the selection highlight so it doesn't end up in the image
+        self.seating_table.clearSelection()
+        image = self.seating_table.parentWidget().grab()
+        if not image.save(filename, "PNG"):
+            QMessageBox.critical(self, "Export failed", f"Could not save:\n{filename}")
+            return
+        QMessageBox.information(self, "Seating exported", f"Saved to:\n{filename}")

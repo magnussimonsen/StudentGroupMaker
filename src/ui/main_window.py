@@ -38,8 +38,8 @@ class MainWindow(QMainWindow):
         self._setup_ui()
         self._setup_menu()
         
-        # Initialize with light theme styling
-        self._set_theme("light")
+        # Apply the font through the same path as the Font Size menu
+        self._on_font_size_changed(Layout.FONT_SIZE)
     
     def _setup_ui(self):
         """Set up the main UI layout."""
@@ -81,7 +81,8 @@ class MainWindow(QMainWindow):
         self.class_panel.students_changed.connect(self.class_seating_panel.set_class)
 
         self.seating_controls = {}
-        for label in ("Add row", "Remove row", "Add column", "Remove column", "Flip classroom"):
+        for label in ("Add row", "Remove row", "Add column", "Remove column", "Flip classroom",
+                      "Export seating as PNG"):
             button = QPushButton(label)
             button.hide()
             self.secondary_menubar_layout.addWidget(button)
@@ -102,6 +103,9 @@ class MainWindow(QMainWindow):
         self.seating_controls["Flip classroom"].setObjectName("flipClassroomButton")
         self.seating_controls["Flip classroom"].clicked.connect(
             self.class_seating_panel.flip_classroom
+        )
+        self.seating_controls["Export seating as PNG"].clicked.connect(
+            self.class_seating_panel.export_png
         )
         self.class_seating_panel.grid_dimensions_changed.connect(
             self._update_seating_controls
@@ -588,24 +592,12 @@ class MainWindow(QMainWindow):
     
     def _on_font_size_changed(self, size: int):
         """Handle font size change - applies globally to entire application."""
-        from PySide6.QtWidgets import QApplication
-        from PySide6.QtGui import QFont
-        
         # Update the Layout constant
         Layout.FONT_SIZE = size
-        
-        # Set application-wide font
-        font = QFont()
-        font.setPointSize(size)
-        QApplication.instance().setFont(font)
-        
-        # Regenerate and reapply stylesheets with new font size
-        app = QApplication.instance()
-        if self.current_theme == "dark":
-            app.setStyleSheet(get_dark_stylesheet())
-        else:
-            app.setStyleSheet(get_light_stylesheet())
-        
+
+        # Reapply the theme; it regenerates the stylesheet and sets the app font
+        self._set_theme(self.current_theme)
+
         # Also explicitly update output panel
         self.output_panel.set_font_size(size)
     
@@ -672,9 +664,9 @@ class MainWindow(QMainWindow):
     def _set_theme(self, theme: str):
         """Set the application theme (light or dark mode)."""
         from PySide6.QtWidgets import QApplication
-        from PySide6.QtGui import QPalette, QColor
+        from PySide6.QtGui import QPalette, QColor, QFont
         from PySide6.QtCore import Qt
-        
+
         # Update current theme state
         self.current_theme = theme
         
@@ -720,7 +712,14 @@ class MainWindow(QMainWindow):
 
             # Apply light theme stylesheet for consistent layout and selection visuals
             app.setStyleSheet(get_light_stylesheet())
-    
+
+        # Set the app font after the stylesheet: setStyleSheet restores Qt's
+        # per-class platform fonts (e.g. 9pt for item views such as the class
+        # dropdown list on Windows), and setFont clears them again.
+        font = QFont()
+        font.setPointSize(Layout.FONT_SIZE)
+        app.setFont(font)
+
     # Methods used by controls panel
     def get_output_text(self) -> str:
         """Get the current output text."""
