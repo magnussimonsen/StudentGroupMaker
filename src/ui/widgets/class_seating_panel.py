@@ -16,6 +16,9 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSplitter,
+    QStyle,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -99,6 +102,20 @@ class AvailableStudentsList(QListWidget):
         event.acceptProposedAction()
 
 
+class _NoHighlightDelegate(QStyledItemDelegate):
+    """Draw seats without selection or focus highlight.
+
+    The table still selects the pressed seat internally, because Qt only
+    starts a drag from a selected item, but seats are only moved by drag
+    and drop so the highlight itself serves no purpose.
+    """
+
+    def paint(self, painter, option, index):
+        option = QStyleOptionViewItem(option)
+        option.state &= ~(QStyle.State_Selected | QStyle.State_HasFocus)
+        super().paint(painter, option, index)
+
+
 class SeatingTable(QTableWidget):
     """Seat grid that accepts students from the list or other seats."""
 
@@ -114,6 +131,14 @@ class SeatingTable(QTableWidget):
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setSelectionBehavior(QAbstractItemView.SelectItems)
+        self.setItemDelegate(_NoHighlightDelegate(self))
+        # The app stylesheet paints selected items too; neutralise it here
+        self.setStyleSheet(
+            "QTableView { selection-background-color: transparent;"
+            " selection-color: palette(text); }"
+            "QTableView::item:selected { background: transparent;"
+            " color: palette(text); }"
+        )
         self.verticalHeader().show()
         self.horizontalHeader().show()
         self.verticalHeader().setDefaultAlignment(Qt.AlignCenter)
@@ -647,8 +672,6 @@ class ClassSeatingPanel(QWidget):
         if not filename.lower().endswith(".png"):
             filename += ".png"
 
-        # Hide the selection highlight so it doesn't end up in the image
-        self.seating_table.clearSelection()
         image = self.seating_table.parentWidget().grab()
         if not image.save(filename, "PNG"):
             QMessageBox.critical(self, "Export failed", f"Could not save:\n{filename}")
