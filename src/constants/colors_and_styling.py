@@ -39,10 +39,12 @@ class DarkTheme:
     SUCCESS_BG_COLOR_HOVER = "#1a9a1a"    # Green button hover background
     SUCCESS_BG_COLOR_PRESSED = "#0b5a0b"  # Green button pressed background
     SUCCESS_TEXT_COLOR = "#ffffff"        # Text on green buttons
+    SUCCESS_DIM_BG_COLOR = "#C81616"        # Dimmed red (unselected mode buttons)
+    SUCCESS_DIM_BORDER_COLOR = "#6e4242"    # Dimmed red border
 
     # Subtle accent (e.g. Flip classroom button)
-    ACCENT_SUBTLE_BG_COLOR = "#2d3f52"      # Soft blue-tinted background
-    ACCENT_SUBTLE_BORDER_COLOR = "#3f5a75"  # Soft blue-tinted border
+    ACCENT_SUBTLE_BG_COLOR = "#5c2f5c"      # Soft magenta-tinted background
+    ACCENT_SUBTLE_BORDER_COLOR = "#7f4a7f"  # Soft magenta-tinted border
 
     # Classroom orientation labels (faded green front, faded red back)
     FRONT_LABEL_BG_COLOR = "#2b4230"
@@ -104,10 +106,12 @@ class LightTheme:
     SUCCESS_BG_COLOR_HOVER = "#1a9a1a"    # Green button hover background
     SUCCESS_BG_COLOR_PRESSED = "#0b5a0b"  # Green button pressed background
     SUCCESS_TEXT_COLOR = "#ffffff"        # Text on green buttons
+    SUCCESS_DIM_BG_COLOR = "#f8dede"        # Dimmed red (unselected mode buttons)
+    SUCCESS_DIM_BORDER_COLOR = "#e4a9a9"    # Dimmed red border
 
     # Subtle accent (e.g. Flip classroom button)
-    ACCENT_SUBTLE_BG_COLOR = "#d6e8f8"      # Soft blue-tinted background
-    ACCENT_SUBTLE_BORDER_COLOR = "#a9cdee"  # Soft blue-tinted border
+    ACCENT_SUBTLE_BG_COLOR = "#f2b8f2"      # Soft magenta-tinted background
+    ACCENT_SUBTLE_BORDER_COLOR = "#d77fd7"  # Soft magenta-tinted border
 
     # Classroom orientation labels (faded green front, faded red back)
     FRONT_LABEL_BG_COLOR = "#dff3df"
@@ -215,17 +219,28 @@ QPushButton#generateButton:pressed {{
     background-color: {DarkTheme.SUCCESS_BG_COLOR_PRESSED};
 }}
 
-QPushButton#modeSelectorButton {{
-    min-height: 0;
-    max-height: 28px;
-    padding: 2px 8px;
+QPushButton#workspaceModeButton {{
+    background-color: {DarkTheme.SUCCESS_DIM_BG_COLOR};
+    border: 1px solid {DarkTheme.SUCCESS_DIM_BORDER_COLOR};
 }}
-QPushButton#modeSelectorButton:checked {{
+QPushButton#workspaceModeButton:hover {{
+    background-color: {DarkTheme.HOVER_BG_COLOR};
+    border: 1px solid {DarkTheme.BORDER_COLOR_HOVER};
+    color: {DarkTheme.TEXT_COLOR_HOVER};
+}}
+QPushButton#workspaceModeButton:pressed {{
+    background-color: {DarkTheme.BUTTON_PRESSED_BG_COLOR};
+    border: 1px solid {DarkTheme.BORDER_COLOR_HOVER};
+    color: {DarkTheme.BUTTON_PRESSED_TEXT_COLOR};
+}}
+QPushButton#modeSelectorButton:checked,
+QPushButton#workspaceModeButton:checked {{
     background-color: {DarkTheme.SUCCESS_BG_COLOR};
     border: 1px solid {DarkTheme.SUCCESS_BG_COLOR_PRESSED};
     color: {DarkTheme.SUCCESS_TEXT_COLOR};
 }}
-QPushButton#modeSelectorButton:checked:hover {{
+QPushButton#modeSelectorButton:checked:hover,
+QPushButton#workspaceModeButton:checked:hover {{
     background-color: {DarkTheme.SUCCESS_BG_COLOR_HOVER};
 }}
 
@@ -452,17 +467,28 @@ QPushButton#generateButton:pressed {{
     background-color: {LightTheme.SUCCESS_BG_COLOR_PRESSED};
 }}
 
-QPushButton#modeSelectorButton {{
-    min-height: 0;
-    max-height: 28px;
-    padding: 2px 8px;
+QPushButton#workspaceModeButton {{
+    background-color: {LightTheme.SUCCESS_DIM_BG_COLOR};
+    border: 1px solid {LightTheme.SUCCESS_DIM_BORDER_COLOR};
 }}
-QPushButton#modeSelectorButton:checked {{
+QPushButton#workspaceModeButton:hover {{
+    background-color: {LightTheme.HOVER_BG_COLOR};
+    border: 1px solid {LightTheme.BORDER_COLOR_HOVER};
+    color: {LightTheme.TEXT_COLOR_HOVER};
+}}
+QPushButton#workspaceModeButton:pressed {{
+    background-color: {LightTheme.BUTTON_PRESSED_BG_COLOR};
+    border: 1px solid {LightTheme.BORDER_COLOR_HOVER};
+    color: {LightTheme.BUTTON_PRESSED_TEXT_COLOR};
+}}
+QPushButton#modeSelectorButton:checked,
+QPushButton#workspaceModeButton:checked {{
     background-color: {LightTheme.SUCCESS_BG_COLOR};
     border: 1px solid {LightTheme.SUCCESS_BG_COLOR_PRESSED};
     color: {LightTheme.SUCCESS_TEXT_COLOR};
 }}
-QPushButton#modeSelectorButton:checked:hover {{
+QPushButton#modeSelectorButton:checked:hover,
+QPushButton#workspaceModeButton:checked:hover {{
     background-color: {LightTheme.SUCCESS_BG_COLOR_HOVER};
 }}
 

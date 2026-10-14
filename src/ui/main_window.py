@@ -81,8 +81,8 @@ class MainWindow(QMainWindow):
         self.class_panel.students_changed.connect(self.class_seating_panel.set_class)
 
         self.seating_controls = {}
-        for label in ("Add row", "Remove row", "Add column", "Remove column", "Flip classroom",
-                      "Export seating as PNG"):
+        for label in ("Add row", "Remove row", "Add column", "Remove column",
+                      "Export seating as PNG", "Flip classroom"):
             button = QPushButton(label)
             button.hide()
             self.secondary_menubar_layout.addWidget(button)
@@ -368,7 +368,7 @@ class MainWindow(QMainWindow):
         mode_selector_layout.addWidget(self.import_classes_button)
 
         self.student_groups_button = QPushButton("Student Groups")
-        self.student_groups_button.setObjectName("modeSelectorButton")
+        self.student_groups_button.setObjectName("workspaceModeButton")
         self.student_groups_button.setCheckable(True)
         self.student_groups_button.setChecked(True)
         self.mode_button_group.addButton(self.student_groups_button)
@@ -378,7 +378,7 @@ class MainWindow(QMainWindow):
         mode_selector_layout.addWidget(self.student_groups_button)
 
         self.class_seating_button = QPushButton("Class Seating")
-        self.class_seating_button.setObjectName("modeSelectorButton")
+        self.class_seating_button.setObjectName("workspaceModeButton")
         self.class_seating_button.setCheckable(True)
         self.mode_button_group.addButton(self.class_seating_button)
         self.class_seating_button.clicked.connect(
