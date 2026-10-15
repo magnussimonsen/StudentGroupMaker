@@ -16,7 +16,7 @@ from ..constants.colors_and_styling import (
 )
 from ..core import schedule_groups, schedule_quality
 from ..models import export_classes, import_classes, list_classes
-from .widgets import ClassPanel, ClassSeatingPanel, ControlsPanel, OutputPanel
+from .widgets import BreakTimerPanel, ClassPanel, ClassSeatingPanel, ControlsPanel, OutputPanel
 from .widgets.flow_layout import FlowLayout, make_group
 from .dialogs import show_about_dialog
 
@@ -67,6 +67,8 @@ class MainWindow(QMainWindow):
         self.mode_stack.addWidget(self.student_groups_page)
         self.class_seating_page = QWidget()
         self.mode_stack.addWidget(self.class_seating_page)
+        self.break_timer_panel = BreakTimerPanel()
+        self.mode_stack.addWidget(self.break_timer_panel)
         
         layout = QVBoxLayout(self.student_groups_page)
         layout.setContentsMargins(10, 10, 10, 10)  # Use standard margins
@@ -387,6 +389,15 @@ class MainWindow(QMainWindow):
             lambda: self._set_mode("class_seating")
         )
         mode_selector_layout.addWidget(self.class_seating_button)
+
+        self.break_timer_button = QPushButton("Break Timer")
+        self.break_timer_button.setObjectName("workspaceModeButton")
+        self.break_timer_button.setCheckable(True)
+        self.mode_button_group.addButton(self.break_timer_button)
+        self.break_timer_button.clicked.connect(
+            lambda: self._set_mode("break_timer")
+        )
+        mode_selector_layout.addWidget(self.break_timer_button)
         
         # View menu
         view_menu = menubar.addMenu("View")
@@ -553,8 +564,13 @@ class MainWindow(QMainWindow):
             "edit_classes": self.edit_classes_page,
             "student_groups": self.student_groups_page,
             "class_seating": self.class_seating_page,
+            "break_timer": self.break_timer_panel,
         }
         self.mode_stack.setCurrentWidget(pages[mode])
+        if mode == "break_timer":
+            # The timer page has no class selector or student list
+            self.secondary_menubar.setVisible(False)
+            return
 
         # The class combo and student list are shared, so move them onto the active page
         combo = self.class_panel.class_combo
