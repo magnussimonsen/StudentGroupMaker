@@ -1,6 +1,6 @@
 """Flow layout that wraps its widgets onto new lines when space runs out."""
 
-from PySide6.QtWidgets import QLayout, QSizePolicy, QWidget, QHBoxLayout
+from PySide6.QtWidgets import QLayout, QSizePolicy, QWidget, QHBoxLayout, QWidgetItem
 from PySide6.QtCore import Qt, QRect, QSize, QPoint
 
 
@@ -22,6 +22,12 @@ class FlowLayout(QLayout):
 
     def addItem(self, item):
         self._items.append(item)
+
+    def insertWidget(self, index, widget):
+        """Insert a widget at the given position, like QBoxLayout.insertWidget."""
+        self.addChildWidget(widget)
+        self._items.insert(index, QWidgetItem(widget))
+        self.invalidate()
 
     def count(self):
         return len(self._items)

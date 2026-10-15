@@ -264,7 +264,7 @@ class ClassSeatingPanel(QWidget):
         self.available_students = AvailableStudentsList(students_panel)
         self.available_students.student_returned.connect(self._return_student)
         students_layout.addWidget(self.available_students, 1)
-        students_panel.setMinimumWidth(180)
+        students_panel.setMinimumWidth(120)
         students_panel.setMaximumWidth(320)
 
         classroom_panel = QWidget(splitter)
@@ -276,6 +276,9 @@ class ClassSeatingPanel(QWidget):
         self.back_label = QLabel("Back of the classroom", self)
         self.back_label.setAlignment(Qt.AlignCenter)
         self.back_label.setObjectName("backOfClassroomLabel")
+        # Wrap so the labels don't stop the classroom from getting narrow
+        self.front_label.setWordWrap(True)
+        self.back_label.setWordWrap(True)
         classroom_layout.addWidget(self.front_label)
         self.seating_table = SeatingTable(classroom_panel)
         self.seating_table.student_dropped.connect(self._drop_student)
@@ -301,7 +304,7 @@ class ClassSeatingPanel(QWidget):
         self.delete_chart_button.setObjectName("deleteClassButton")
         self.delete_chart_button.clicked.connect(self._delete_chart)
         charts_layout.addWidget(self.delete_chart_button)
-        charts_panel.setMinimumWidth(190)
+        charts_panel.setMinimumWidth(130)
         charts_panel.setMaximumWidth(320)
 
         splitter.addWidget(students_panel)
