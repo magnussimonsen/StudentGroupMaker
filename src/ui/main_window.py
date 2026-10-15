@@ -50,11 +50,11 @@ class MainWindow(QMainWindow):
 
         self.secondary_menubar = QWidget(central)
         self.secondary_menubar.setObjectName("secondaryMenuBar")
-        self.secondary_menubar_layout = QHBoxLayout(self.secondary_menubar)
+        # Wraps onto extra lines when the window is narrow
+        self.secondary_menubar_layout = FlowLayout(self.secondary_menubar, spacing=10)
         # Same margins and spacing as the toolbar rows on the other pages, so the
         # first row of controls sits in the same place on every page
         self.secondary_menubar_layout.setContentsMargins(10, 10, 10, 6)
-        self.secondary_menubar_layout.setSpacing(10)
         central_layout.addWidget(self.secondary_menubar)
 
         self.mode_stack = QStackedWidget()
@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
         # Create separate panels to extract controls from
         self.class_panel = ClassPanel()
         self.class_panel.class_changed.connect(self._on_class_changed)
-        self.class_panel.class_combo.setMinimumWidth(220)
+        self.class_panel.class_combo.setMinimumWidth(150)
         self.class_seating_panel = ClassSeatingPanel(self.class_seating_page)
         class_seating_layout = QVBoxLayout(self.class_seating_page)
         class_seating_layout.setContentsMargins(0, 0, 0, 0)
@@ -119,7 +119,6 @@ class MainWindow(QMainWindow):
             self.class_panel.get_student_records(),
         )
 
-        self.secondary_menubar_layout.addStretch(1)
         self.controls_panel = ControlsPanel()
         self.controls_panel.generate_requested.connect(self._generate_groups)
         
@@ -170,12 +169,12 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(self.class_panel.student_list)
         self.groups_students_layout = left_layout
         # Enforce a sensible minimum width so the list and names remain readable
-        left_widget.setMinimumWidth(180)
+        left_widget.setMinimumWidth(120)
 
         # Right side: Output panel
         self.output_panel = OutputPanel()
         # Enforce a sensible minimum width so the output doesn't collapse
-        self.output_panel.setMinimumWidth(280)
+        self.output_panel.setMinimumWidth(160)
         
         splitter.addWidget(left_widget)
         splitter.addWidget(self.output_panel)
@@ -227,7 +226,7 @@ class MainWindow(QMainWindow):
 
         self.student_input = QLineEdit()
         self.student_input.setPlaceholderText("Add student…")
-        self.student_input.setMinimumWidth(200)
+        self.student_input.setMinimumWidth(150)
 
         btn_add_student = QPushButton("Add student")
         btn_add_student.clicked.connect(self._add_student)

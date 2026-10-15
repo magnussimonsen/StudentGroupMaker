@@ -3,7 +3,7 @@
 import time
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton, QSizePolicy
 )
 from PySide6.QtCore import Qt, QTimer
 
@@ -73,6 +73,13 @@ class BreakTimerPanel(QWidget):
         self.status_label.setAlignment(Qt.AlignCenter)
         self.time_label = QLabel()
         self.time_label.setAlignment(Qt.AlignCenter)
+        # The labels scale with the window, so their size must not hold the window
+        # at its current size; otherwise it could grow but never shrink again
+        # (an explicit minimum height overrides the one derived from the font size;
+        # 0 would mean "unset", hence 1)
+        for label in (self.status_label, self.time_label):
+            label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+            label.setMinimumHeight(1)
 
         layout.addStretch(1)
         layout.addWidget(self.status_label)
