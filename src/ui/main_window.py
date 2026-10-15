@@ -51,8 +51,10 @@ class MainWindow(QMainWindow):
         self.secondary_menubar = QWidget(central)
         self.secondary_menubar.setObjectName("secondaryMenuBar")
         self.secondary_menubar_layout = QHBoxLayout(self.secondary_menubar)
-        self.secondary_menubar_layout.setContentsMargins(4, 2, 4, 2)
-        self.secondary_menubar_layout.setSpacing(4)
+        # Same margins and spacing as the toolbar rows on the other pages, so the
+        # first row of controls sits in the same place on every page
+        self.secondary_menubar_layout.setContentsMargins(10, 10, 10, 6)
+        self.secondary_menubar_layout.setSpacing(10)
         central_layout.addWidget(self.secondary_menubar)
 
         self.mode_stack = QStackedWidget()
@@ -127,7 +129,7 @@ class MainWindow(QMainWindow):
         controls_row.addWidget(self.groups_class_group)
 
         # Students per group selector
-        controls_row.addWidget(make_group(QLabel("Students/group:"), self.controls_panel.num_students))
+        controls_row.addWidget(make_group(QLabel("Students per group:"), self.controls_panel.num_students))
         
         # Groups selector
         controls_row.addWidget(make_group(QLabel("Groups:"), self.controls_panel.num_groups))
@@ -350,15 +352,6 @@ class MainWindow(QMainWindow):
         mode_selector_layout.setContentsMargins(4, 0, 4, 0)
         mode_selector_layout.setSpacing(4)
 
-        self.edit_classes_button = QPushButton("Edit classes")
-        self.edit_classes_button.setObjectName("modeSelectorButton")
-        self.edit_classes_button.setCheckable(True)
-        self.mode_button_group.addButton(self.edit_classes_button)
-        self.edit_classes_button.clicked.connect(
-            lambda: self._set_mode("edit_classes")
-        )
-        mode_selector_layout.addWidget(self.edit_classes_button)
-
         self.export_classes_button = QPushButton("Export classes")
         self.export_classes_button.clicked.connect(self._show_export_classes_dialog)
         mode_selector_layout.addWidget(self.export_classes_button)
@@ -366,6 +359,15 @@ class MainWindow(QMainWindow):
         self.import_classes_button = QPushButton("Import classes")
         self.import_classes_button.clicked.connect(self._on_import_classes_clicked)
         mode_selector_layout.addWidget(self.import_classes_button)
+
+        self.edit_classes_button = QPushButton("Edit classes")
+        self.edit_classes_button.setObjectName("workspaceModeButton")
+        self.edit_classes_button.setCheckable(True)
+        self.mode_button_group.addButton(self.edit_classes_button)
+        self.edit_classes_button.clicked.connect(
+            lambda: self._set_mode("edit_classes")
+        )
+        mode_selector_layout.addWidget(self.edit_classes_button)
 
         self.student_groups_button = QPushButton("Student Groups")
         self.student_groups_button.setObjectName("workspaceModeButton")
@@ -600,6 +602,13 @@ class MainWindow(QMainWindow):
 
         # Also explicitly update output panel
         self.output_panel.set_font_size(size)
+
+        # Spin boxes are naturally a little taller than buttons and combo boxes,
+        # which made toolbar rows differ in height between pages
+        row_height = self.generate_btn.sizeHint().height()
+        for spinbox in (self.controls_panel.num_students, self.controls_panel.num_groups,
+                        self.controls_panel.num_rounds, self.controls_panel.random_seed):
+            spinbox.setFixedHeight(row_height)
     
     def _generate_groups(self, students_per_group: int, num_groups: int, 
                         num_rounds: int, seed: int | None):

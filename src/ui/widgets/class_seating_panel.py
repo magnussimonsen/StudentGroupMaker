@@ -3,8 +3,8 @@
 import json
 from pathlib import Path
 
-from PySide6.QtCore import QByteArray, QMimeData, QStandardPaths, Qt, Signal
-from PySide6.QtGui import QDrag
+from PySide6.QtCore import QByteArray, QMimeData, QPointF, QStandardPaths, Qt, Signal
+from PySide6.QtGui import QDrag, QPainter, QPalette, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFileDialog,
@@ -286,6 +286,9 @@ class ClassSeatingPanel(QWidget):
         charts_layout = QVBoxLayout(charts_panel)
         charts_layout.setContentsMargins(8, 0, 0, 0)
         charts_layout.addWidget(QLabel("Saved seating charts"))
+        charts_hint = QLabel("Double-click a chart to rename it.")
+        charts_hint.setWordWrap(True)
+        charts_layout.addWidget(charts_hint)
         self.chart_list = QListWidget(charts_panel)
         self.chart_list.setEditTriggers(QAbstractItemView.DoubleClicked)
         self.chart_list.currentItemChanged.connect(self._on_chart_selected)
@@ -657,6 +660,50 @@ class ClassSeatingPanel(QWidget):
         self._update_front_label_position()
         self._save_and_refresh()
 
+    def _render_classroom_image(self) -> QPixmap:
+        """Draw the labels and the whole seat grid, sized to fit the grid exactly.
+
+        Grabbing the panel as it is shown would include empty space below a short
+        grid, or cut off a tall one behind a scrollbar.
+        """
+        table = self.seating_table
+        old_size = table.size()
+        content_height = (
+            table.horizontalHeader().height()
+            + table.verticalHeader().length()
+            + 2 * table.frameWidth()
+        )
+        table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        table.resize(old_size.width(), content_height)
+        table_image = table.grab()
+        table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        table.resize(old_size)
+
+        # Stack the pieces in their on-screen order (the front label can be at the bottom)
+        layout = table.parentWidget().layout()
+        pieces = [
+            table_image if widget is table else widget.grab()
+            for widget in (layout.itemAt(i).widget() for i in range(layout.count()))
+            if widget is not None
+        ]
+        spacing = layout.spacing()
+        sizes = [piece.deviceIndependentSize() for piece in pieces]
+        width = max(size.width() for size in sizes)
+        height = sum(size.height() for size in sizes) + spacing * (len(pieces) - 1)
+
+        # Work in logical pixels but keep the screen's resolution on high-DPI displays
+        ratio = table_image.devicePixelRatio()
+        image = QPixmap(round(width * ratio), round(height * ratio))
+        image.setDevicePixelRatio(ratio)
+        image.fill(self.palette().color(QPalette.Window))
+        painter = QPainter(image)
+        y = 0.0
+        for piece, size in zip(pieces, sizes):
+            painter.drawPixmap(QPointF(0, y), piece)
+            y += size.height() + spacing
+        painter.end()
+        return image
+
     def export_png(self):
         """Save the classroom view (labels and seat grid) as a PNG image."""
         desktop = QStandardPaths.writableLocation(QStandardPaths.DesktopLocation)
@@ -672,7 +719,7 @@ class ClassSeatingPanel(QWidget):
         if not filename.lower().endswith(".png"):
             filename += ".png"
 
-        image = self.seating_table.parentWidget().grab()
+        image = self._render_classroom_image()
         if not image.save(filename, "PNG"):
             QMessageBox.critical(self, "Export failed", f"Could not save:\n{filename}")
             return

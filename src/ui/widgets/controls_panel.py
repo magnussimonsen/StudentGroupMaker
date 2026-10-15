@@ -35,7 +35,7 @@ class ControlsPanel(QWidget):
         # First row: spinboxes
         spinbox_row = QHBoxLayout()
         
-        spinbox_row.addWidget(QLabel("Students/group:"))
+        spinbox_row.addWidget(QLabel("Students per group:"))
         self.num_students = QSpinBox()
         self.num_students.setRange(2, 99)
         self.num_students.setValue(DEFAULT_STUDENTS_PER_GROUP)
