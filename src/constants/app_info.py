@@ -1,10 +1,10 @@
 """Application constants and metadata."""
 
 APP_NAME = "GroupMaker"
-VERSION = "0.7.2"
+VERSION = "0.7.4"
 AUTHOR = "Magnus Simonsen / Claude"
 AUTHOR_COPYRIGHT = "Magnus Simonsen"
-DESCRIPTION = "A simple desktop application for teachers to create random student groups with minimal pair repetition."
+DESCRIPTION = "A simple desktop application for teachers to create random student groups with minimal pair repetition and plan classroom seating charts."
 REPOSITORY = "https://github.com/magnussimonsen/StudentGroupMaker"
 
 FEATURES = [
@@ -13,6 +13,7 @@ FEATURES = [
     "Mark attendance with checkboxes",
     "Generate balanced random groups",
     "Export group plans to text files",
+    "Plan class seating with drag and drop, save multiple seating charts and export them as PNG",
     "Adjustable font sizes and resizable panels",
 ]
 
