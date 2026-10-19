@@ -300,6 +300,9 @@ class ClassSeatingPanel(QWidget):
         self.new_chart_button = QPushButton("New chart", charts_panel)
         self.new_chart_button.clicked.connect(self._create_chart)
         charts_layout.addWidget(self.new_chart_button)
+        self.copy_chart_button = QPushButton("Copy seating to new chart", charts_panel)
+        self.copy_chart_button.clicked.connect(self._copy_chart)
+        charts_layout.addWidget(self.copy_chart_button)
         self.delete_chart_button = QPushButton("Delete chart", charts_panel)
         self.delete_chart_button.setObjectName("deleteClassButton")
         self.delete_chart_button.clicked.connect(self._delete_chart)
@@ -415,10 +418,40 @@ class ClassSeatingPanel(QWidget):
 
         rows = len(self.seats)
         columns = len(self.seats[0]) if rows else _DEFAULT_COLUMNS
-        self.charts[chart_name] = [
-            [None] * columns for _ in range(rows or _DEFAULT_ROWS)
-        ]
-        self.front_at_bottom.discard(chart_name)
+        self._add_chart(
+            chart_name,
+            [[None] * columns for _ in range(rows or _DEFAULT_ROWS)],
+            front_at_bottom=False,
+        )
+
+    def _copy_chart(self):
+        source_name = self.active_chart
+        if source_name not in self.charts:
+            return
+
+        chart_name = f"{source_name} (copy)"
+        suffix = 2
+        while chart_name in self.charts:
+            chart_name = f"{source_name} (copy {suffix})"
+            suffix += 1
+
+        self._add_chart(
+            chart_name,
+            [row.copy() for row in self.charts[source_name]],
+            front_at_bottom=source_name in self.front_at_bottom,
+        )
+
+    def _add_chart(
+        self,
+        chart_name: str,
+        seats: list[list[str | None]],
+        front_at_bottom: bool,
+    ):
+        self.charts[chart_name] = seats
+        if front_at_bottom:
+            self.front_at_bottom.add(chart_name)
+        else:
+            self.front_at_bottom.discard(chart_name)
         self.active_chart = chart_name
         self.seats = self.charts[chart_name]
         item = QListWidgetItem(chart_name)
