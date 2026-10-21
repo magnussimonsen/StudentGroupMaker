@@ -4,7 +4,7 @@ APP_NAME = "GroupMaker"
 VERSION = "0.7.8"
 AUTHOR = "Magnus Simonsen / Claude"
 AUTHOR_COPYRIGHT = "Magnus Simonsen"
-DESCRIPTION = "A simple desktop application for teachers to create random student groups with minimal pair repetition and plan classroom seating charts."
+DESCRIPTION = "A simple desktop application for teachers to create random student groups with minimal pair repetition, plan classroom seating charts, keep track of red crosses and time breaks."
 REPOSITORY = "https://github.com/magnussimonsen/StudentGroupMaker"
 
 FEATURES = [
@@ -14,6 +14,9 @@ FEATURES = [
     "Generate balanced random groups",
     "Export group plans to text files",
     "Plan class seating with drag and drop, save multiple seating charts and export them as PNG",
+    "Give red crosses in a table or on the seating desks, and archive them so earlier crosses stay safe",
+    "Break timer with a large countdown",
+    "Export and import classes with their seating charts",
     "Adjustable font sizes and resizable panels",
 ]
 
