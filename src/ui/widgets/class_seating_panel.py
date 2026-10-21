@@ -3,7 +3,9 @@
 import json
 from pathlib import Path
 
-from PySide6.QtCore import QByteArray, QMimeData, QPointF, QStandardPaths, Qt, Signal
+from PySide6.QtCore import (
+    QByteArray, QEvent, QMimeData, QPointF, QRect, QRectF, QStandardPaths, Qt, Signal,
+)
 from PySide6.QtGui import QDrag, QPainter, QPalette, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -21,11 +23,16 @@ from PySide6.QtWidgets import (
     QStyleOptionViewItem,
     QTableWidget,
     QTableWidgetItem,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
 
 from ...models.seating_data import load_seating_charts, save_seating_charts
+from ...models.storage import backup_damaged_file, seating_path
+from .red_cross_store import (
+    GREEN_CROSS_COLOR, RED_CROSS_COLOR, RedCrossStore, confirm_show_red_crosses, paint_cross,
+)
 
 _STUDENT_MIME_TYPE = "application/x-student-group-maker-seat"
 _DEFAULT_ROWS = 5
@@ -34,6 +41,29 @@ _MAX_ROWS = 15
 _MAX_COLUMNS = 12
 _ROW_HEIGHT = 72
 _EMPTY_LINE_SCALE = 0.5  # Rows/columns without students are drawn at half size
+_DESK_CROSSES = 5  # Crosses above an occupied desk; one more appears when all are red
+_CROSS_SIZE = 14
+_CROSS_GAP = 5
+_CROSS_MARGIN = 6
+
+
+def _desk_cross_slots(cell: QRect, red_count: int) -> list[QRectF]:
+    """Click areas of the crosses in a row along the top of a desk.
+
+    Each slot is one cross plus its share of the gaps, so neighbouring crosses
+    are easy to hit; the cross itself is drawn centered in its slot. Crosses
+    shrink when there are too many to fit the desk width.
+    """
+    slots = max(_DESK_CROSSES, red_count + 1)
+    step = min(_CROSS_SIZE + _CROSS_GAP, (cell.width() - 2 * _CROSS_MARGIN) / slots)
+    left = cell.center().x() - step * slots / 2
+    top = cell.top() + _CROSS_MARGIN - _CROSS_GAP / 2
+    return [QRectF(left + step * slot, top, step, step) for slot in range(slots)]
+
+
+def _cross_in_slot(slot: QRectF) -> QRectF:
+    inset = slot.width() * _CROSS_GAP / (_CROSS_SIZE + _CROSS_GAP) / 2
+    return slot.adjusted(inset, inset, -inset, -inset)
 
 
 def _decode_student_mime(mime_data: QMimeData) -> dict | None:
@@ -102,8 +132,8 @@ class AvailableStudentsList(QListWidget):
         event.acceptProposedAction()
 
 
-class _NoHighlightDelegate(QStyledItemDelegate):
-    """Draw seats without selection or focus highlight.
+class _SeatDelegate(QStyledItemDelegate):
+    """Draw seats without selection or focus highlight, with crosses above seated students.
 
     The table still selects the pressed seat internally, because Qt only
     starts a drag from a selected item, but seats are only moved by drag
@@ -113,7 +143,20 @@ class _NoHighlightDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         option = QStyleOptionViewItem(option)
         option.state &= ~(QStyle.State_Selected | QStyle.State_HasFocus)
+        table = self.parent()
+        student_id = index.data(Qt.UserRole)
+        if student_id is None or not table.show_crosses:
+            super().paint(painter, option, index)
+            return
+
+        red_count = table.red_crosses.count(student_id)
+        slots = _desk_cross_slots(option.rect, red_count)
+        # Center the name in the space below the crosses
+        option.rect = option.rect.adjusted(0, int(slots[0].bottom() - option.rect.top()), 0, 0)
         super().paint(painter, option, index)
+        for slot_index, slot in enumerate(slots):
+            color = RED_CROSS_COLOR if slot_index < red_count else GREEN_CROSS_COLOR
+            paint_cross(painter, _cross_in_slot(slot), color)
 
 
 class SeatingTable(QTableWidget):
@@ -121,8 +164,11 @@ class SeatingTable(QTableWidget):
 
     student_dropped = Signal(dict, int, int)
 
-    def __init__(self, parent=None):
+    def __init__(self, red_crosses: RedCrossStore, parent=None):
         super().__init__(parent)
+        self.red_crosses = red_crosses
+        # Hidden by default, since the classroom may be shown on a projector
+        self.show_crosses = False
         self.setAcceptDrops(True)
         self.setDragEnabled(True)
         self.setDropIndicatorShown(True)
@@ -131,7 +177,9 @@ class SeatingTable(QTableWidget):
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setSelectionBehavior(QAbstractItemView.SelectItems)
-        self.setItemDelegate(_NoHighlightDelegate(self))
+        self.setItemDelegate(_SeatDelegate(self))
+        # Track hovering so the cursor can change over the crosses
+        self.setMouseTracking(True)
         # The app stylesheet paints selected items too; neutralise it here
         self.setStyleSheet(
             "QTableView { selection-background-color: transparent;"
@@ -182,6 +230,67 @@ class SeatingTable(QTableWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._update_column_widths()
+
+    def _cross_at(self, pos) -> tuple[str, bool] | None:
+        """Return (student ID, whether the cross is red) for the cross under pos."""
+        if not self.show_crosses:
+            return None
+        index = self.indexAt(pos)
+        student_id = index.data(Qt.UserRole) if index.isValid() else None
+        if student_id is None:
+            return None
+        red_count = self.red_crosses.count(student_id)
+        for slot_index, slot in enumerate(_desk_cross_slots(self.visualRect(index), red_count)):
+            if slot.contains(QPointF(pos)):
+                return student_id, slot_index < red_count
+        return None
+
+    def _toggle_cross(self, event) -> bool:
+        """Turn the clicked cross red (give a cross) or green (remove one)."""
+        if event.button() != Qt.LeftButton:
+            return False
+        cross = self._cross_at(event.position().toPoint())
+        if cross is None:
+            return False
+        student_id, is_red = cross
+        if is_red:
+            self.red_crosses.remove_last(student_id)
+        else:
+            self.red_crosses.add(student_id)
+        event.accept()
+        return True
+
+    def mousePressEvent(self, event):
+        # A click on a cross must not select the seat or start dragging the student
+        if not self._toggle_cross(event):
+            super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        # The second click of a quick double click arrives here instead of as a press
+        if not self._toggle_cross(event):
+            super().mouseDoubleClickEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if not event.buttons():
+            if self._cross_at(event.position().toPoint()):
+                self.viewport().setCursor(Qt.PointingHandCursor)
+            else:
+                self.viewport().unsetCursor()
+        super().mouseMoveEvent(event)
+
+    def viewportEvent(self, event):
+        if event.type() == QEvent.ToolTip:
+            cross = self._cross_at(event.pos())
+            if cross is None:
+                QToolTip.hideText()
+            else:
+                QToolTip.showText(
+                    event.globalPos(),
+                    "Remove this red cross" if cross[1] else "Give a red cross",
+                    self.viewport(),
+                )
+            return True
+        return super().viewportEvent(event)
 
     def startDrag(self, supported_actions):
         index = self.currentIndex()
@@ -234,8 +343,9 @@ class ClassSeatingPanel(QWidget):
 
     grid_dimensions_changed = Signal(int, int)
 
-    def __init__(self, parent=None):
+    def __init__(self, red_crosses: RedCrossStore, parent=None):
         super().__init__(parent)
+        self.red_crosses = red_crosses
         self.class_name = ""
         self.students: dict[str, str] = {}
         self.front_at_bottom: set[str] = set()
@@ -280,7 +390,9 @@ class ClassSeatingPanel(QWidget):
         self.front_label.setWordWrap(True)
         self.back_label.setWordWrap(True)
         classroom_layout.addWidget(self.front_label)
-        self.seating_table = SeatingTable(classroom_panel)
+        self.seating_table = SeatingTable(self.red_crosses, classroom_panel)
+        self.red_crosses.roster_changed.connect(self.seating_table.viewport().update)
+        self.red_crosses.marks_changed.connect(self.seating_table.viewport().update)
         self.seating_table.student_dropped.connect(self._drop_student)
         classroom_layout.addWidget(self.seating_table, 1)
         classroom_layout.addWidget(self.back_label)
@@ -321,8 +433,9 @@ class ClassSeatingPanel(QWidget):
     def set_class(self, class_name: str, students: list[dict[str, str]]):
         """Load a class seating plan and reconcile it with the current roster."""
         if class_name != self.class_name:
-            self.class_name = class_name
-            saved_charts = load_seating_charts(class_name) if class_name else None
+            saved_charts, can_save = self._load_saved_charts(class_name)
+            # Without a readable file, keep no class name so nothing is saved over it
+            self.class_name = class_name if can_save else ""
             if saved_charts is None:
                 self.charts = {
                     "Seating 1": [
@@ -361,6 +474,40 @@ class ClassSeatingPanel(QWidget):
             self._save_charts()
         else:
             self._refresh()
+
+    def _load_saved_charts(self, class_name: str):
+        """Load a class's charts without raising.
+
+        Returns (charts or None for a new layout, whether saving is safe). A damaged
+        file is moved aside; a file that cannot be read is left alone and not saved over.
+        """
+        if not class_name:
+            return None, True
+        try:
+            return load_seating_charts(class_name), True
+        except ValueError as damaged:
+            try:
+                backup = backup_damaged_file(seating_path(class_name))
+            except OSError as backup_error:
+                error = backup_error
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Seating charts damaged",
+                    f"The seating charts of '{class_name}' were damaged and could not "
+                    f"be loaded, so they have been reset.\n\nThe damaged file was kept as:\n"
+                    f"{backup}\n\n{damaged}",
+                )
+                return None, True
+        except OSError as read_error:
+            error = read_error
+        QMessageBox.warning(
+            self,
+            "Seating charts could not be loaded",
+            f"The seating charts of '{class_name}' could not be read, so changes to "
+            f"them will not be saved.\n\n{error}",
+        )
+        return None, False
 
     def _reconcile_roster(self, seats: list[list[str | None]]):
         known_students = set(self.students)
@@ -686,6 +833,18 @@ class ClassSeatingPanel(QWidget):
             row.pop()
         self._save_and_refresh()
 
+    def set_show_crosses(self, show: bool) -> bool:
+        """Show or hide the red crosses, confirming first since others may be watching.
+
+        Returns whether the crosses are shown afterwards.
+        """
+        if show:
+            show = confirm_show_red_crosses(self)
+        self.seating_table.show_crosses = show
+        self.seating_table.viewport().unsetCursor()
+        self.seating_table.viewport().update()
+        return show
+
     def flip_classroom(self):
         """Rotate the seating layout by 180 degrees."""
         self.seats = [list(reversed(row)) for row in reversed(self.seats)]
@@ -711,7 +870,11 @@ class ClassSeatingPanel(QWidget):
         )
         table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         table.resize(old_size.width(), content_height)
+        # Red crosses are for the teacher, not for a chart shown to the class
+        show_crosses = table.show_crosses
+        table.show_crosses = False
         table_image = table.grab()
+        table.show_crosses = show_crosses
         table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         table.resize(old_size)
 

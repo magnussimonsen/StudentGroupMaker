@@ -2,7 +2,7 @@
 
 import json
 
-from .storage import seating_path
+from .storage import seating_path, write_json_atomically
 
 
 def _is_valid_grid(seats: object) -> bool:
@@ -68,17 +68,11 @@ def save_seating_charts(
     front_at_bottom: set[str] | None = None,
 ) -> None:
     """Save all seating charts for a class and the currently selected chart."""
-    path = seating_path(name)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(
-            {
-                "active_chart": active_chart,
-                "charts": charts,
-                "front_at_bottom": sorted(front_at_bottom or set()),
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
+    write_json_atomically(
+        seating_path(name),
+        {
+            "active_chart": active_chart,
+            "charts": charts,
+            "front_at_bottom": sorted(front_at_bottom or set()),
+        },
     )

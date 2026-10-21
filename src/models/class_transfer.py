@@ -10,11 +10,10 @@ from typing import Any
 
 from .class_data import list_classes, load_class_records
 from .seating_data import load_seating_charts
-from .storage import class_path, seating_path
+from .storage import INVALID_FILENAME_CHARACTERS, class_path, marks_path, seating_path
 
 _BUNDLE_FORMAT = "student-group-maker-classes"
 _BUNDLE_VERSION = 1
-_INVALID_FILENAME_CHARACTERS = set('<>:"/\\|?*')
 
 
 def _read_class_data(name: str) -> list[dict[str, str]]:
@@ -142,7 +141,7 @@ def _validate_class_name(name: object) -> str:
     if (
         not normalized
         or normalized[-1] in " ."
-        or any(character in _INVALID_FILENAME_CHARACTERS for character in normalized)
+        or any(character in INVALID_FILENAME_CHARACTERS for character in normalized)
         or any(ord(character) < 32 for character in normalized)
     ):
         raise ValueError(f"The imported class name '{name}' is not valid on this system.")
@@ -255,6 +254,7 @@ def _get_available_class_name(
         candidate.casefold() in reserved_names
         or class_path(candidate).exists()
         or seating_path(candidate).exists()
+        or marks_path(candidate).exists()
     ):
         candidate = f"{original_name}_{suffix}"
         suffix += 1

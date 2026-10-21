@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from uuid import uuid4
 
-from .storage import class_path, seating_path, CLASSES_DIR
+from .storage import class_path, marks_path, seating_path, write_json_atomically, CLASSES_DIR
 from ..constants import DEFAULT_STUDENTS, DEFAULT_MATH102_STUDENTS
 
 
@@ -26,19 +26,23 @@ def load_class(name: str) -> list[str]:
 
 
 def load_class_records(name: str) -> list[dict[str, str]]:
-    """Load students with stable IDs, migrating legacy name-only class files."""
+    """Load students with stable IDs, migrating legacy name-only class files.
+
+    Raises OSError if the file cannot be read and ValueError if it is damaged,
+    so callers never mistake an unreadable class for an empty one.
+    """
     path = class_path(name)
     if not path.exists():
         return []
 
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return []
+    except ValueError as error:
+        raise ValueError(f"The student list of '{name}' is damaged: {error}") from error
 
     students_data = data.get("students", []) if isinstance(data, dict) else data
     if not isinstance(students_data, list):
-        return []
+        raise ValueError(f"The student list of '{name}' is damaged.")
 
     records = []
     seen_ids = set()
@@ -67,11 +71,7 @@ def load_class_records(name: str) -> list[dict[str, str]]:
 
 def save_class_records(name: str, students: list[dict[str, str]]) -> None:
     """Save student records without changing their stable IDs."""
-    path = class_path(name)
-    path.write_text(
-        json.dumps({"students": students}, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    write_json_atomically(class_path(name), {"students": students})
 
 
 def save_class(name: str, students: list[str]) -> None:
@@ -111,9 +111,9 @@ def delete_class(name: str) -> bool:
     p = class_path(name)
     if p.exists():
         p.unlink()
-        seating_file = seating_path(name)
-        if seating_file.exists():
-            seating_file.unlink()
+        for related_file in (seating_path(name), marks_path(name)):
+            if related_file.exists():
+                related_file.unlink()
         return True
     return False
 

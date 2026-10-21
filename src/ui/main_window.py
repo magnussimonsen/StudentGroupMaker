@@ -16,7 +16,11 @@ from ..constants.colors_and_styling import (
 )
 from ..core import schedule_groups, schedule_quality
 from ..models import export_classes, import_classes, list_classes
-from .widgets import BreakTimerPanel, ClassPanel, ClassSeatingPanel, ControlsPanel, OutputPanel
+from .widgets import (
+    BreakTimerPanel, ClassPanel, ClassSeatingPanel, ControlsPanel, OutputPanel,
+    RedCrossPanel, RedCrossStore,
+)
+from .widgets.red_cross_store import confirm_show_red_crosses
 from .widgets.flow_layout import FlowLayout, make_group
 from .dialogs import show_about_dialog
 
@@ -67,6 +71,10 @@ class MainWindow(QMainWindow):
         self.mode_stack.addWidget(self.student_groups_page)
         self.class_seating_page = QWidget()
         self.mode_stack.addWidget(self.class_seating_page)
+        # Shared by the Red Crosses tab and the desks on the Class Seating page
+        self.red_crosses = RedCrossStore(self)
+        self.red_cross_panel = RedCrossPanel(self.red_crosses)
+        self.mode_stack.addWidget(self.red_cross_panel)
         self.break_timer_panel = BreakTimerPanel()
         self.mode_stack.addWidget(self.break_timer_panel)
         
@@ -78,15 +86,16 @@ class MainWindow(QMainWindow):
         self.class_panel = ClassPanel()
         self.class_panel.class_changed.connect(self._on_class_changed)
         self.class_panel.class_combo.setMinimumWidth(150)
-        self.class_seating_panel = ClassSeatingPanel(self.class_seating_page)
+        self.class_seating_panel = ClassSeatingPanel(self.red_crosses, self.class_seating_page)
         class_seating_layout = QVBoxLayout(self.class_seating_page)
         class_seating_layout.setContentsMargins(0, 0, 0, 0)
         class_seating_layout.addWidget(self.class_seating_panel)
         self.class_panel.students_changed.connect(self.class_seating_panel.set_class)
+        self.class_panel.students_changed.connect(self.red_crosses.set_class)
 
         self.seating_controls = {}
         for label in ("Add row", "Remove row", "Add column", "Remove column",
-                      "Export seating as PNG", "Flip classroom"):
+                      "Export seating as PNG", "Show red crosses", "Flip classroom"):
             button = QPushButton(label)
             button.hide()
             self.secondary_menubar_layout.addWidget(button)
@@ -108,16 +117,21 @@ class MainWindow(QMainWindow):
         self.seating_controls["Flip classroom"].clicked.connect(
             self.class_seating_panel.flip_classroom
         )
+        show_crosses_button = self.seating_controls["Show red crosses"]
+        show_crosses_button.setObjectName("showRedCrossesButton")
+        show_crosses_button.setCheckable(True)
+        show_crosses_button.toggled.connect(self._on_show_crosses_toggled)
         self.seating_controls["Export seating as PNG"].clicked.connect(
             self.class_seating_panel.export_png
         )
         self.class_seating_panel.grid_dimensions_changed.connect(
             self._update_seating_controls
         )
-        self.class_seating_panel.set_class(
-            self.class_panel.get_current_class_name(),
-            self.class_panel.get_student_records(),
-        )
+        for set_class in (self.class_seating_panel.set_class, self.red_crosses.set_class):
+            set_class(
+                self.class_panel.get_current_class_name(),
+                self.class_panel.get_student_records(),
+            )
 
         self.controls_panel = ControlsPanel()
         self.controls_panel.generate_requested.connect(self._generate_groups)
@@ -389,6 +403,13 @@ class MainWindow(QMainWindow):
         )
         mode_selector_layout.addWidget(self.class_seating_button)
 
+        self.red_crosses_button = QPushButton("Red Crosses")
+        self.red_crosses_button.setObjectName("workspaceModeButton")
+        self.red_crosses_button.setCheckable(True)
+        self.mode_button_group.addButton(self.red_crosses_button)
+        self.red_crosses_button.clicked.connect(self._on_red_crosses_clicked)
+        mode_selector_layout.addWidget(self.red_crosses_button)
+
         self.break_timer_button = QPushButton("Break Timer")
         self.break_timer_button.setObjectName("workspaceModeButton")
         self.break_timer_button.setCheckable(True)
@@ -426,6 +447,13 @@ class MainWindow(QMainWindow):
 
         menubar.setCornerWidget(self.mode_selector, Qt.TopRightCorner)
 
+        self.mode_buttons = {
+            "edit_classes": self.edit_classes_button,
+            "student_groups": self.student_groups_button,
+            "class_seating": self.class_seating_button,
+            "red_crosses": self.red_crosses_button,
+            "break_timer": self.break_timer_button,
+        }
         self._set_mode("student_groups")
 
     def _show_export_classes_dialog(self):
@@ -556,13 +584,22 @@ class MainWindow(QMainWindow):
             self, "Classes imported", f"Imported {len(imported)} class(es):\n{details}"
         )
 
+    def _on_red_crosses_clicked(self):
+        """Open the Red Crosses tab after confirming, since the class may see the screen."""
+        if self.current_mode != "red_crosses" and not confirm_show_red_crosses(self):
+            self.mode_buttons[self.current_mode].setChecked(True)
+            return
+        self._set_mode("red_crosses")
+
     def _set_mode(self, mode: str):
         """Switch the main view and show controls belonging to the selected mode."""
+        self.current_mode = mode
         is_class_seating = mode == "class_seating"
         pages = {
             "edit_classes": self.edit_classes_page,
             "student_groups": self.student_groups_page,
             "class_seating": self.class_seating_page,
+            "red_crosses": self.red_cross_panel,
             "break_timer": self.break_timer_panel,
         }
         self.mode_stack.setCurrentWidget(pages[mode])
@@ -577,6 +614,7 @@ class MainWindow(QMainWindow):
             "edit_classes": (self.edit_class_group.layout(), 1),
             "student_groups": (self.groups_class_group.layout(), 1),
             "class_seating": (self.secondary_menubar_layout, 0),
+            "red_crosses": (self.red_cross_panel.class_group.layout(), 1),
         }
         for slot_layout, _ in combo_slots.values():
             slot_layout.removeWidget(combo)
@@ -601,7 +639,16 @@ class MainWindow(QMainWindow):
         self.seating_controls["Remove row"].setEnabled(rows > 1)
         self.seating_controls["Add column"].setEnabled(columns < 12)
         self.seating_controls["Remove column"].setEnabled(columns > 1)
-    
+
+    def _on_show_crosses_toggled(self, checked: bool):
+        """Show or hide red crosses, unchecking the button if the teacher cancels."""
+        shown = self.class_seating_panel.set_show_crosses(checked)
+        if shown != checked:
+            button = self.seating_controls["Show red crosses"]
+            button.blockSignals(True)
+            button.setChecked(shown)
+            button.blockSignals(False)
+
     def _on_class_changed(self, name: str):
         """Handle class selection change."""
         # Clear output when switching classes

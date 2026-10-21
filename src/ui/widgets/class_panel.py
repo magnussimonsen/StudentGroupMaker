@@ -13,6 +13,7 @@ from ...constants.colors_and_styling import Layout
 from ...models import (
     load_class_records, save_class, save_class_records, list_classes, delete_class,
 )
+from ...models.storage import INVALID_FILENAME_CHARACTERS, same_class_file
 
 
 class ClassPanel(QWidget):
@@ -23,6 +24,8 @@ class ClassPanel(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        # Set when the current class file could not be read; blocks saving over it
+        self._roster_unavailable = False
         self._setup_ui()
         self._load_initial_class()
     
@@ -90,15 +93,43 @@ class ClassPanel(QWidget):
     def _on_class_changed(self, name: str):
         """Handle class selection change."""
         self.student_list.clear()
-        if name:
-            for student in load_class_records(name):
-                self._add_student_item(
-                    student["name"],
-                    checked=True,
-                    student_id=student["id"],
-                )
+        try:
+            students = load_class_records(name) if name else []
+        except (OSError, ValueError) as error:
+            # Publish no class at all, so the other tabs neither show nor save
+            # this class's seating and red crosses against an empty roster.
+            self._roster_unavailable = True
+            self.student_list.setEnabled(False)
+            QMessageBox.warning(
+                self,
+                "Class could not be loaded",
+                f"The student list of '{name}' could not be read, so the class "
+                f"is shown as read-only and nothing will be saved.\n\n{error}",
+            )
+            self.class_changed.emit(name)
+            self.students_changed.emit("", [])
+            return
+
+        self._roster_unavailable = False
+        self.student_list.setEnabled(True)
+        for student in students:
+            self._add_student_item(
+                student["name"],
+                checked=True,
+                student_id=student["id"],
+            )
         self.class_changed.emit(name)
         self.students_changed.emit(name, self.get_student_records())
+
+    def _can_edit_roster(self) -> bool:
+        """Warn and refuse when the current class could not be loaded."""
+        if self._roster_unavailable:
+            QMessageBox.warning(
+                self,
+                "Class is read-only",
+                "This class could not be loaded, so its student list cannot be changed.",
+            )
+        return not self._roster_unavailable
 
     def _add_student_item(
         self, name: str, checked: bool = True, student_id: str | None = None
@@ -152,9 +183,32 @@ class ClassPanel(QWidget):
             QMessageBox.warning(self, "Class name", "Please enter a class name.")
             return
         
-        existing = [self.class_combo.itemText(i) for i in range(self.class_combo.count())]
-        if name in existing:
-            QMessageBox.information(self, "Exists", "That class already exists.")
+        if (
+            name[-1] == "."
+            or any(c in INVALID_FILENAME_CHARACTERS or ord(c) < 32 for c in name)
+        ):
+            QMessageBox.warning(
+                self,
+                "Class name",
+                'Class names cannot contain any of < > : " / \\ | ? * '
+                "or end with a period.",
+            )
+            return
+
+        # Compare the way the files are named, or the new class would overwrite
+        # an existing one that differs only in case (e.g. "math101" vs "Math101").
+        existing = next(
+            (
+                self.class_combo.itemText(i)
+                for i in range(self.class_combo.count())
+                if same_class_file(self.class_combo.itemText(i), name)
+            ),
+            None,
+        )
+        if existing is not None:
+            QMessageBox.information(
+                self, "Exists", f"The class '{existing}' already exists."
+            )
         else:
             save_class(name, [])
             self.class_combo.addItem(name)
@@ -183,7 +237,7 @@ class ClassPanel(QWidget):
     def _auto_save_class(self):
         """Silently save the current class after its student list changes."""
         name = self.class_combo.currentText()
-        if not name:
+        if not name or self._roster_unavailable:
             return
         
         # Sort students alphabetically by first name before saving (and update UI order)
@@ -221,7 +275,7 @@ class ClassPanel(QWidget):
     def _add_student(self):
         """Add a student to the list."""
         name = self.student_input.text().strip()
-        if not name:
+        if not name or not self._can_edit_roster():
             return
         
         existing = self.get_all_students()
@@ -236,7 +290,7 @@ class ClassPanel(QWidget):
     def add_student_from_input(self, name: str):
         """Add a student from external input (e.g., bottom bar)."""
         name = name.strip()
-        if not name:
+        if not name or not self._can_edit_roster():
             return
         
         existing = self.get_all_students()
@@ -248,6 +302,8 @@ class ClassPanel(QWidget):
     
     def remove_checked_students(self):
         """Remove checked students (public method for bottom bar)."""
+        if not self._can_edit_roster():
+            return
         checked_items = [
             self.student_list.item(i)
             for i in range(self.student_list.count())

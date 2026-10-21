@@ -1,7 +1,7 @@
 """Application constants and metadata."""
 
 APP_NAME = "GroupMaker"
-VERSION = "0.7.5"
+VERSION = "0.7.8"
 AUTHOR = "Magnus Simonsen / Claude"
 AUTHOR_COPYRIGHT = "Magnus Simonsen"
 DESCRIPTION = "A simple desktop application for teachers to create random student groups with minimal pair repetition and plan classroom seating charts."

@@ -259,6 +259,16 @@ QPushButton#flipClassroomButton:pressed {{
     color: {DarkTheme.BUTTON_PRESSED_TEXT_COLOR};
 }}
 
+/* Red while the crosses are visible, so the teacher notices before projecting */
+QPushButton#showRedCrossesButton:checked {{
+    background-color: {DarkTheme.DANGER_BG_COLOR};
+    border: 1px solid {DarkTheme.DANGER_BG_COLOR_PRESSED};
+    color: {DarkTheme.DANGER_TEXT_COLOR};
+}}
+QPushButton#showRedCrossesButton:checked:hover {{
+    background-color: {DarkTheme.DANGER_BG_COLOR_HOVER};
+}}
+
 QComboBox {{
     background-color: {DarkTheme.DROPDOWN_BG_COLOR};
     color: {DarkTheme.TEXT_COLOR};
@@ -504,6 +514,16 @@ QPushButton#flipClassroomButton:pressed {{
     background-color: {LightTheme.BUTTON_PRESSED_BG_COLOR};
     border: 1px solid {LightTheme.BORDER_COLOR_HOVER};
     color: {LightTheme.BUTTON_PRESSED_TEXT_COLOR};
+}}
+
+/* Red while the crosses are visible, so the teacher notices before projecting */
+QPushButton#showRedCrossesButton:checked {{
+    background-color: {LightTheme.DANGER_BG_COLOR};
+    border: 1px solid {LightTheme.DANGER_BG_COLOR_PRESSED};
+    color: {LightTheme.DANGER_TEXT_COLOR};
+}}
+QPushButton#showRedCrossesButton:checked:hover {{
+    background-color: {LightTheme.DANGER_BG_COLOR_HOVER};
 }}
 
 QComboBox {{
