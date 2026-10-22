@@ -5,7 +5,6 @@ PyInstaller builds for the platform it runs on, so build the Windows `.exe` on W
 and the Linux executable/AppImage on Linux.
 
 ## 1. Set up the virtual environment (once)
-
 Windows:
 ```powershell
 python create-python-venv-win.py
