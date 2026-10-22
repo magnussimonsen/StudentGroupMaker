@@ -1,4 +1,4 @@
-# GroupMaker TEST
+# GroupMaker
 
 Create random student groups with minimal pair repetition, plan classroom seating, keep track of red crosses and time breaks. Built with Python + PySide6.
 
