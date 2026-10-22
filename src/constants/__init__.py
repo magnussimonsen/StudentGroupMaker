@@ -13,7 +13,6 @@ from .app_info import (
 )
 from .license import MIT_LICENSE_TEXT, MIT_LICENSE_HTML
 from .start_values import (
-    DEFAULT_STUDENTS_PER_GROUP,
     DEFAULT_NUM_GROUPS,
     DEFAULT_NUM_ROUNDS,
 )
@@ -30,7 +29,6 @@ __all__ = [
     "DEFAULT_MATH102_STUDENTS",
     "MIT_LICENSE_TEXT",
     "MIT_LICENSE_HTML",
-    "DEFAULT_STUDENTS_PER_GROUP",
     "DEFAULT_NUM_GROUPS",
     "DEFAULT_NUM_ROUNDS",
 ]

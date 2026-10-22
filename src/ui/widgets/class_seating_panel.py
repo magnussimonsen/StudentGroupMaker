@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
 )
 
 from ...models.seating_data import load_seating_charts, save_seating_charts
-from ...models.storage import backup_damaged_file, seating_path
+from ...models.storage import backup_damaged_file, safe_file_name, seating_path
 from .red_cross_store import (
     GREEN_CROSS_COLOR, RED_CROSS_COLOR, RedCrossStore, confirm_show_red_crosses, paint_cross,
 )
@@ -37,8 +37,8 @@ from .red_cross_store import (
 _STUDENT_MIME_TYPE = "application/x-student-group-maker-seat"
 _DEFAULT_ROWS = 5
 _DEFAULT_COLUMNS = 6
-_MAX_ROWS = 15
-_MAX_COLUMNS = 12
+MAX_ROWS = 15
+MAX_COLUMNS = 12
 _ROW_HEIGHT = 72
 _EMPTY_LINE_SCALE = 0.5  # Rows/columns without students are drawn at half size
 _DESK_CROSSES = 5  # Crosses above an occupied desk; one more appears when all are red
@@ -459,14 +459,7 @@ class ClassSeatingPanel(QWidget):
             and isinstance(student.get("id"), str)
             and isinstance(student.get("name"), str)
         }
-        id_by_name = {
-            name: student_id for student_id, name in self.students.items()
-        }
         for seats in self.charts.values():
-            for row_index, row in enumerate(seats):
-                for column_index, student_id in enumerate(row):
-                    if student_id not in self.students and student_id in id_by_name:
-                        seats[row_index][column_index] = id_by_name[student_id]
             self._reconcile_roster(seats)
         self.seats = self.charts[self.active_chart]
         self._refresh_chart_list()
@@ -539,18 +532,27 @@ class ClassSeatingPanel(QWidget):
 
     def _save_charts(self):
         if self.class_name:
-            save_seating_charts(
-                self.class_name,
-                self.charts,
-                self.active_chart,
-                self.front_at_bottom,
-            )
+            try:
+                save_seating_charts(
+                    self.class_name,
+                    self.charts,
+                    self.active_chart,
+                    self.front_at_bottom,
+                )
+            except OSError as error:
+                QMessageBox.critical(
+                    self,
+                    "Seating charts not saved",
+                    f"The seating charts of '{self.class_name}' could not be saved. "
+                    f"The change is shown but will be lost when the app closes.\n\n{error}",
+                )
         self._refresh()
 
     def _on_chart_selected(self, current: QListWidgetItem, previous: QListWidgetItem):
-        if current is None or current.text() not in self.charts:
+        chart_name = current.data(Qt.UserRole) if current is not None else None
+        if chart_name not in self.charts:
             return
-        self.active_chart = current.text()
+        self.active_chart = chart_name
         self.seats = self.charts[self.active_chart]
         self._update_front_label_position()
         self._save_charts()
@@ -659,11 +661,12 @@ class ClassSeatingPanel(QWidget):
             item.setText(old_name if isinstance(old_name, str) else "")
             self.chart_list.blockSignals(False)
             return
+        # Show the name as stored, without the leading or trailing spaces
+        if item.text() != new_name:
+            self.chart_list.blockSignals(True)
+            item.setText(new_name)
+            self.chart_list.blockSignals(False)
         if new_name == old_name:
-            if item.text() != new_name:
-                self.chart_list.blockSignals(True)
-                item.setText(new_name)
-                self.chart_list.blockSignals(False)
             return
 
         charts = {}
@@ -789,7 +792,7 @@ class ClassSeatingPanel(QWidget):
         self._save_and_refresh()
 
     def add_row(self):
-        if len(self.seats) >= _MAX_ROWS:
+        if len(self.seats) >= MAX_ROWS:
             return
         columns = len(self.seats[0]) if self.seats else _DEFAULT_COLUMNS
         self.seats.append([None] * columns)
@@ -811,7 +814,7 @@ class ClassSeatingPanel(QWidget):
         self._save_and_refresh()
 
     def add_column(self):
-        if not self.seats or len(self.seats[0]) >= _MAX_COLUMNS:
+        if not self.seats or len(self.seats[0]) >= MAX_COLUMNS:
             return
         for row in self.seats:
             row.append(None)
@@ -906,7 +909,8 @@ class ClassSeatingPanel(QWidget):
     def export_png(self):
         """Save the classroom view (labels and seat grid) as a PNG image."""
         desktop = QStandardPaths.writableLocation(QStandardPaths.DesktopLocation)
-        default_name = f"{self.class_name or 'class'} - {self.active_chart}.png"
+        # Chart names may contain characters like / or : that file names cannot
+        default_name = safe_file_name(f"{self.class_name or 'class'} - {self.active_chart}") + ".png"
         filename, _ = QFileDialog.getSaveFileName(
             self,
             "Export seating as PNG",

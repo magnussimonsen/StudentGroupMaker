@@ -2,12 +2,13 @@
 
 import sys
 from pathlib import Path
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtGui import QFont, QIcon
 
+from .constants import APP_NAME
 from .constants.colors_and_styling import Layout
 from .ui import MainWindow
-from .models import create_default_class
+from .models import DATA_DIR, create_default_class
 
 
 def resource_path(relative: str) -> str:
@@ -40,8 +41,17 @@ def main() -> int:
     font.setPointSize(Layout.FONT_SIZE)
     app.setFont(font)
 
-    # Ensure default class exists
-    create_default_class()
+    # Ensure default class exists. This is the first write to the data folder,
+    # so report it if that folder cannot be used instead of failing silently
+    try:
+        create_default_class()
+    except OSError as error:
+        QMessageBox.critical(
+            None,
+            APP_NAME,
+            f"{APP_NAME} cannot save its data in:\n{DATA_DIR}\n\n{error}",
+        )
+        return 1
 
     # Create and show main window
     window = MainWindow()

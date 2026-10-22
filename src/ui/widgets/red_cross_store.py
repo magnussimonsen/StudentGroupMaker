@@ -167,5 +167,14 @@ class RedCrossStore(QObject):
         self.marks_changed.emit()
 
     def _save(self):
-        if self.class_name:
+        if not self.class_name:
+            return
+        try:
             save_marks(self.class_name, self._new, self._archived)
+        except OSError as error:
+            QMessageBox.critical(
+                None,
+                "Red crosses not saved",
+                f"The red crosses of '{self.class_name}' could not be saved. "
+                f"The change is shown but will be lost when the app closes.\n\n{error}",
+            )

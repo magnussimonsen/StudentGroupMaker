@@ -12,21 +12,8 @@ from .storage import class_path, marks_path, seating_path, write_json_atomically
 from ..constants import DEFAULT_STUDENTS, DEFAULT_MATH102_STUDENTS
 
 
-def load_class(name: str) -> list[str]:
-    """
-    Load student list for a class.
-    
-    Args:
-        name: Class name
-        
-    Returns:
-        List of student names
-    """
-    return [student["name"] for student in load_class_records(name)]
-
-
 def load_class_records(name: str) -> list[dict[str, str]]:
-    """Load students with stable IDs, migrating legacy name-only class files.
+    """Load students with their stable IDs.
 
     Raises OSError if the file cannot be read and ValueError if it is damaged,
     so callers never mistake an unreadable class for an empty one.
@@ -40,32 +27,25 @@ def load_class_records(name: str) -> list[dict[str, str]]:
     except ValueError as error:
         raise ValueError(f"The student list of '{name}' is damaged: {error}") from error
 
-    students_data = data.get("students", []) if isinstance(data, dict) else data
-    if not isinstance(students_data, list):
+    students = data.get("students") if isinstance(data, dict) else None
+    if not isinstance(students, list):
         raise ValueError(f"The student list of '{name}' is damaged.")
 
     records = []
     seen_ids = set()
-    for student in students_data:
-        if isinstance(student, dict):
-            student_name = str(student.get("name", "")).strip()
-            student_id = student.get("id")
-        elif isinstance(student, list) and student:
-            student_name = str(student[0]).strip()
-            student_id = None
-        else:
-            student_name = str(student).strip()
-            student_id = None
-
-        if not student_name:
-            continue
-        if not isinstance(student_id, str) or not student_id or student_id in seen_ids:
-            student_id = uuid4().hex
+    for student in students:
+        student_id = student.get("id") if isinstance(student, dict) else None
+        student_name = student.get("name") if isinstance(student, dict) else None
+        if (
+            not isinstance(student_id, str)
+            or not student_id
+            or student_id in seen_ids
+            or not isinstance(student_name, str)
+            or not student_name.strip()
+        ):
+            raise ValueError(f"The student list of '{name}' contains an invalid student.")
         seen_ids.add(student_id)
-        records.append({"id": student_id, "name": student_name})
-
-    if data != {"students": records}:
-        save_class_records(name, records)
+        records.append({"id": student_id, "name": student_name.strip()})
     return records
 
 
@@ -118,13 +98,19 @@ def delete_class(name: str) -> bool:
     return False
 
 
+# Built-in sample classes; they are always available and cannot be deleted
+SAMPLE_CLASSES = {
+    "Math101": DEFAULT_STUDENTS,
+    "Math102": DEFAULT_MATH102_STUDENTS,
+}
+
+
 def create_default_class() -> None:
     """Create the built-in sample classes if they do not already exist."""
     existing_classes = list_classes()
-    if "Math101" not in existing_classes:
-        save_class("Math101", DEFAULT_STUDENTS)
-    if "Math102" not in existing_classes:
-        save_class("Math102", DEFAULT_MATH102_STUDENTS)
+    for name, students in SAMPLE_CLASSES.items():
+        if name not in existing_classes:
+            save_class(name, students)
 
 
 def export_plan(filename: str, class_name: str, rounds: list[list[list[str]]]) -> None:

@@ -687,8 +687,3 @@ QSplitter::handle:pressed {{
     background-color: {LightTheme.HOVER_BG_COLOR};
 }}
 """
-
-
-# Backwards compatibility - use the functions to generate default stylesheets
-DARK_STYLESHEET = get_dark_stylesheet()
-LIGHT_STYLESHEET = get_light_stylesheet()

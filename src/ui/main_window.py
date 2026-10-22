@@ -1,7 +1,7 @@
 """Main application window."""
 
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QSplitter, QMessageBox, QDialog, QPushButton, QLabel, QStackedWidget,
     QButtonGroup, QListWidget, QListWidgetItem, QDialogButtonBox,
     QFileDialog, QCheckBox, QAbstractItemView
@@ -11,8 +11,7 @@ from pathlib import Path
 
 from ..constants import APP_NAME, VERSION, REPOSITORY
 from ..constants.colors_and_styling import (
-    DARK_STYLESHEET, LIGHT_STYLESHEET, DarkTheme, LightTheme, Layout,
-    get_dark_stylesheet, get_light_stylesheet
+    DarkTheme, LightTheme, Layout, get_dark_stylesheet, get_light_stylesheet
 )
 from ..core import schedule_groups, schedule_quality
 from ..models import export_classes, import_classes, list_classes
@@ -20,9 +19,21 @@ from .widgets import (
     BreakTimerPanel, ClassPanel, ClassSeatingPanel, ControlsPanel, OutputPanel,
     RedCrossPanel, RedCrossStore,
 )
+from .widgets.class_seating_panel import MAX_COLUMNS, MAX_ROWS
 from .widgets.red_cross_store import confirm_show_red_crosses
 from .widgets.flow_layout import FlowLayout, make_group
 from .dialogs import show_about_dialog
+
+
+class _SelectAllCheckBox(QCheckBox):
+    """Shows "some selected" as partially checked, but a click only checks or unchecks all.
+
+    A plain tristate checkbox would go from unchecked to partially checked on a
+    click, which selects nothing, so it took two clicks to select all.
+    """
+
+    def nextCheckState(self):
+        self.setCheckState(Qt.Unchecked if self.checkState() == Qt.Checked else Qt.Checked)
 
 
 class MainWindow(QMainWindow):
@@ -134,7 +145,6 @@ class MainWindow(QMainWindow):
             )
 
         self.controls_panel = ControlsPanel()
-        self.controls_panel.generate_requested.connect(self._generate_groups)
         
         # Row 2: Main controls row (wraps onto extra lines when the window is narrow)
         controls_row = FlowLayout(spacing=10)
@@ -143,9 +153,6 @@ class MainWindow(QMainWindow):
         self.groups_class_group = make_group(QLabel("Class:"))
         controls_row.addWidget(self.groups_class_group)
 
-        # Students per group selector
-        controls_row.addWidget(make_group(QLabel("Students per group:"), self.controls_panel.num_students))
-        
         # Groups selector
         controls_row.addWidget(make_group(QLabel("Groups:"), self.controls_panel.num_groups))
         
@@ -245,8 +252,8 @@ class MainWindow(QMainWindow):
         btn_add_student = QPushButton("Add student")
         btn_add_student.clicked.connect(self._add_student)
 
-        btn_remove_student = QPushButton("Remove checked student(s)")
-        btn_remove_student.clicked.connect(self._remove_checked_students)
+        btn_remove_student = QPushButton("Remove selected student(s)")
+        btn_remove_student.clicked.connect(self._remove_selected_students)
 
         btn_all = QPushButton("Check all")
         btn_all.clicked.connect(self._check_all)
@@ -297,9 +304,9 @@ class MainWindow(QMainWindow):
         self.class_panel.add_student_from_input(self.student_input.text())
         self.student_input.clear()
     
-    def _remove_checked_students(self):
-        """Remove checked students via the student actions bar."""
-        self.class_panel.remove_checked_students()
+    def _remove_selected_students(self):
+        """Remove selected students via the student actions bar."""
+        self.class_panel.remove_selected_students()
     
     def _check_all(self):
         """Check all students via the student actions bar."""
@@ -333,7 +340,11 @@ class MainWindow(QMainWindow):
         if not filename:
             return
         
-        export_plan(filename, class_name, schedule)
+        try:
+            export_plan(filename, class_name, schedule)
+        except OSError as error:
+            QMessageBox.critical(self, "Export failed", f"Could not save:\n{filename}\n\n{error}")
+            return
         QMessageBox.information(
             self, "Exported",
             f"Saved to:\n{filename}"
@@ -346,14 +357,13 @@ class MainWindow(QMainWindow):
     def _on_generate_clicked(self):
         """Handle generate button click."""
         # Get values from controls panel and generate groups
-        students_per_group = self.controls_panel.num_students.value()
         num_groups = self.controls_panel.num_groups.value()
         num_rounds = self.controls_panel.num_rounds.value()
         seed_value = self.controls_panel.random_seed.value()
         # Treat 0 as "totally random" by passing None to the scheduler
         seed = None if seed_value == 0 else seed_value
-        
-        self._generate_groups(students_per_group, num_groups, num_rounds, seed)
+
+        self._generate_groups(num_groups, num_rounds, seed)
     
     def _setup_menu(self):
         """Set up the menu bar."""
@@ -457,7 +467,7 @@ class MainWindow(QMainWindow):
         self._set_mode("student_groups")
 
     def _show_export_classes_dialog(self):
-        """Let the user choose classes for a single Desktop export bundle."""
+        """Let the user choose classes to export to a single bundle file."""
         classes = list_classes()
         if not classes:
             QMessageBox.information(self, "Export classes", "There are no classes to export.")
@@ -477,11 +487,14 @@ class MainWindow(QMainWindow):
             item.setCheckState(Qt.Checked)
         layout.addWidget(class_list)
 
-        select_all = QCheckBox("Select all", dialog)
+        select_all = _SelectAllCheckBox("Select all", dialog)
         select_all.setChecked(True)
         select_all.setTristate(True)
 
-        def set_class_checks(state: int):
+        def set_class_checks(_state: int):
+            # stateChanged passes a plain int, which never equals a Qt.CheckState
+            # enum in PySide6, so read the state from the checkbox instead
+            state = select_all.checkState()
             if state == Qt.PartiallyChecked:
                 return
             class_list.blockSignals(True)
@@ -509,8 +522,15 @@ class MainWindow(QMainWindow):
         class_list.itemChanged.connect(update_select_all)
         layout.addWidget(select_all)
 
+        # Off by default, since the export file may be shared with others
+        include_red_crosses = QCheckBox("Include red crosses", dialog)
+        include_red_crosses.setToolTip(
+            "Also export the new and archived red crosses of the selected classes"
+        )
+        layout.addWidget(include_red_crosses)
+
         button_box = QDialogButtonBox(dialog)
-        button_box.addButton("Export to Desktop", QDialogButtonBox.AcceptRole)
+        button_box.addButton("Export…", QDialogButtonBox.AcceptRole)
         button_box.addButton(QDialogButtonBox.Cancel)
         button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
@@ -529,26 +549,26 @@ class MainWindow(QMainWindow):
             )
             return
 
+        # Suggest the Desktop, falling back to the home folder where there is none
+        # (common on Linux); the save dialog asks before replacing a file
         desktop = QStandardPaths.writableLocation(QStandardPaths.DesktopLocation)
-        if not desktop or not Path(desktop).is_dir():
-            QMessageBox.warning(
-                self, "Export classes", "The Desktop folder could not be found."
-            )
+        folder = Path(desktop) if desktop and Path(desktop).is_dir() else Path.home()
+        filename, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export classes",
+            str(folder / "GroupMaker_classes.json"),
+            "GroupMaker class exports (*.json)",
+        )
+        if not filename:
             return
-        destination = Path(desktop) / "GroupMaker_classes.json"
-        if destination.exists():
-            reply = QMessageBox.question(
-                self,
-                "Replace export file",
-                f"'{destination.name}' already exists on the Desktop. Replace it?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
-            )
-            if reply != QMessageBox.Yes:
-                return
+        destination = Path(filename)
+        if destination.suffix.lower() != ".json":
+            destination = destination.with_name(destination.name + ".json")
 
         try:
-            export_classes(selected_classes, destination)
+            export_classes(
+                selected_classes, destination, include_red_crosses.isChecked()
+            )
         except (OSError, ValueError) as error:
             QMessageBox.critical(self, "Export failed", str(error))
             return
@@ -557,7 +577,7 @@ class MainWindow(QMainWindow):
         )
 
     def _on_import_classes_clicked(self):
-        """Import classes and their saved seating charts from a JSON bundle."""
+        """Import classes with their seating charts (and red crosses, if exported) from a JSON bundle."""
         filename, _ = QFileDialog.getOpenFileName(
             self,
             "Import classes",
@@ -628,6 +648,8 @@ class MainWindow(QMainWindow):
             self.edit_students_layout.addWidget(student_list)
         else:
             self.groups_students_layout.addWidget(student_list)
+        # Students are only selected for removal; elsewhere a selection has no use
+        self.class_panel.set_selectable(mode == "edit_classes")
 
         self.secondary_menubar.setVisible(is_class_seating)
         for button in self.seating_controls.values():
@@ -635,9 +657,9 @@ class MainWindow(QMainWindow):
 
     def _update_seating_controls(self, rows: int, columns: int):
         """Enable dimension controls only when the grid can change that way."""
-        self.seating_controls["Add row"].setEnabled(rows < 15)
+        self.seating_controls["Add row"].setEnabled(rows < MAX_ROWS)
         self.seating_controls["Remove row"].setEnabled(rows > 1)
-        self.seating_controls["Add column"].setEnabled(columns < 12)
+        self.seating_controls["Add column"].setEnabled(columns < MAX_COLUMNS)
         self.seating_controls["Remove column"].setEnabled(columns > 1)
 
     def _on_show_crosses_toggled(self, checked: bool):
@@ -651,8 +673,10 @@ class MainWindow(QMainWindow):
 
     def _on_class_changed(self, name: str):
         """Handle class selection change."""
-        # Clear output when switching classes
+        # Clear output when switching classes, so the old plan can't be exported
+        # or shown as a heatmap under the new class's name
         self.output_panel.clear()
+        self.last_schedule = None
     
     def _on_font_size_changed(self, size: int):
         """Handle font size change - applies globally to entire application."""
@@ -668,12 +692,11 @@ class MainWindow(QMainWindow):
         # Spin boxes are naturally a little taller than buttons and combo boxes,
         # which made toolbar rows differ in height between pages
         row_height = self.generate_btn.sizeHint().height()
-        for spinbox in (self.controls_panel.num_students, self.controls_panel.num_groups,
-                        self.controls_panel.num_rounds, self.controls_panel.random_seed):
+        for spinbox in (self.controls_panel.num_groups, self.controls_panel.num_rounds,
+                        self.controls_panel.random_seed):
             spinbox.setFixedHeight(row_height)
-    
-    def _generate_groups(self, students_per_group: int, num_groups: int, 
-                        num_rounds: int, seed: int | None):
+
+    def _generate_groups(self, num_groups: int, num_rounds: int, seed: int | None):
         """Generate groups based on current settings."""
         present = self.class_panel.get_present_students()
         
@@ -691,13 +714,17 @@ class MainWindow(QMainWindow):
             )
             return
         
-        # Generate the schedule
-        schedule = schedule_groups(
-            students=present,
-            n_groups=num_groups,
-            rounds=num_rounds,
-            seed=seed
-        )
+        # Generate the schedule; this can take a few seconds for a large class
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            schedule = schedule_groups(
+                students=present,
+                n_groups=num_groups,
+                rounds=num_rounds,
+                seed=seed
+            )
+        finally:
+            QApplication.restoreOverrideCursor()
         
         # Store for matrix display
         self.last_schedule = schedule
@@ -710,7 +737,9 @@ class MainWindow(QMainWindow):
         lines.append(f"Class:\t{self.class_panel.get_current_class_name()}")
         lines.append(f"Students:\t{len(present)}")
         lines.append(f"Groups per round:\t{num_groups}")
-        lines.append(f"Students per group:\t{students_per_group}")
+        # The group sizes follow from the students and groups, e.g. "2-3" for 19 in 9 groups
+        group_sizes = sorted({len(group) for group in schedule[0]})
+        lines.append(f"Students per group:\t{'-'.join(map(str, group_sizes))}")
         lines.append(f"Rounds:\t{num_rounds}")
         lines.append(f"Quality:\t{overall_pct:.1f}% unique pairs")
         lines.append(f"Random seed:\t{seed if seed is not None else 'Random (0)'}")
@@ -815,7 +844,7 @@ class MainWindow(QMainWindow):
             return
 
         from ..core.visualization import build_pair_matrix, create_heatmap_figure
-        from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+        from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
         from PySide6.QtWidgets import QSizePolicy
 
         names, matrix = build_pair_matrix(self.last_schedule)
@@ -826,6 +855,8 @@ class MainWindow(QMainWindow):
         dialog.resize(900, 800)
         dialog.setWindowFlags(dialog.windowFlags() | Qt.Window | Qt.WindowMinMaxButtonsHint | Qt.WindowCloseButtonHint)
         dialog.setWindowModality(Qt.NonModal)
+        # Free the dialog and its figure when closed, or every heatmap stays in memory
+        dialog.setAttribute(Qt.WA_DeleteOnClose)
 
         layout = QVBoxLayout()
 

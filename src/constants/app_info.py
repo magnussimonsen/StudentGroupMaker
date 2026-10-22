@@ -16,7 +16,7 @@ FEATURES = [
     "Plan class seating with drag and drop, save multiple seating charts and export them as PNG",
     "Give red crosses in a table or on the seating desks, and archive them so earlier crosses stay safe",
     "Break timer with a large countdown",
-    "Export and import classes with their seating charts",
+    "Export and import classes with their seating charts, and optionally their red crosses",
     "Adjustable font sizes and resizable panels",
 ]
 

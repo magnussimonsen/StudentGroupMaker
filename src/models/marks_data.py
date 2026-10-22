@@ -42,14 +42,16 @@ def load_marks(name: str) -> tuple[Marks, Marks]:
     return _read_marks(data, "new"), _read_marks(data, "archived")
 
 
-def save_marks(name: str, new: Marks, archived: Marks) -> None:
-    """Save the red crosses of a class, leaving out students without any."""
-    write_json_atomically(
-        marks_path(name),
-        {
-            "new": {student_id: stamps for student_id, stamps in new.items() if stamps},
-            "archived": {
-                student_id: stamps for student_id, stamps in archived.items() if stamps
-            },
+def marks_file_data(new: Marks, archived: Marks) -> dict[str, Marks]:
+    """The contents of a red-cross file, leaving out students without any crosses."""
+    return {
+        "new": {student_id: stamps for student_id, stamps in new.items() if stamps},
+        "archived": {
+            student_id: stamps for student_id, stamps in archived.items() if stamps
         },
-    )
+    }
+
+
+def save_marks(name: str, new: Marks, archived: Marks) -> None:
+    """Save the red crosses of a class."""
+    write_json_atomically(marks_path(name), marks_file_data(new, archived))

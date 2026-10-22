@@ -14,7 +14,7 @@ Create random student groups with minimal pair repetition, plan classroom seatin
 
 ## Features
 - Manage multiple classes and student rosters; mark attendance and keep student identities stable when names change
-- Export selected classes to one JSON file on the Desktop and import them later, including all saved seating charts
+- Export selected classes to one JSON file and import them later, including all saved seating charts and, if you choose, their red crosses
 - Switch between the Edit classes, Student Groups, Class Seating, Red Crosses and Break Timer tabs
 - Create, rename, copy, and delete multiple saved seating charts for each class
 - Arrange and move students between seats and the unseated list using drag and drop

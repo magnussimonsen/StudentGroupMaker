@@ -43,3 +43,12 @@ Thumbs.db
 
 # Application data
 .GroupMaker/
+# Virtual environment created by create-python-venv-*.py
+.venv/
+
+# AppImage build output (recreated by app-image-scripts/build-appimage.sh)
+AppDir/
+*.AppImage
+
+# Backups
+*.backup

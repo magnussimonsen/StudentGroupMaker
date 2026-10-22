@@ -6,11 +6,10 @@ in group schedules.
 """
 from __future__ import annotations
 import matplotlib
-# Use the generic Qt backend for Qt6/PySide6
-matplotlib.use('QtAgg')
-import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import BoundaryNorm
+# Not pyplot: it keeps every figure alive until closed, so each heatmap would leak
+from matplotlib.figure import Figure
 
 
 def build_pair_matrix(rounds: list[list[list[str]]]) -> tuple[list[str], list[list[int]]]:
@@ -58,21 +57,12 @@ def create_heatmap_figure(names: list[str], matrix: list[list[int]]):
     """
     n = len(names)
     
-    # Create figure. Use constrained_layout so axis labels and colorbar are included in PNG exports.
-    # Fall back to tight_layout if constrained layout isn't supported.
-    fig = None
-    ax = None
-    try:
-        fig, ax = plt.subplots(
-            figsize=(max(8, n * 0.5), max(8, n * 0.5)),
-            constrained_layout=True,
-        )
-    except TypeError:
-        # Older Matplotlib: no constrained_layout; create normally and adjust later
-        fig, ax = plt.subplots(figsize=(max(8, n * 0.5), max(8, n * 0.5)))
-    
+    # Use a constrained layout so axis labels and colorbar are included in PNG exports
+    fig = Figure(figsize=(max(8, n * 0.5), max(8, n * 0.5)), layout="constrained")
+    ax = fig.subplots()
+
     # Create heatmap with discrete integer bins and integer-only colorbar ticks
-    cmap = plt.get_cmap('YlOrRd')
+    cmap = matplotlib.colormaps['YlOrRd']
     max_count = 0
     if matrix and matrix[0]:
         max_count = max(max(row) for row in matrix)
@@ -96,7 +86,7 @@ def create_heatmap_figure(names: list[str], matrix: list[list[int]]):
     ax.set_yticklabels(names)
     
     # Add colorbar
-    cbar = plt.colorbar(im, ax=ax, ticks=ticks)
+    cbar = fig.colorbar(im, ax=ax, ticks=ticks)
     cbar.set_label('Times in same group', rotation=270, labelpad=20)
     
     # Add text annotations
@@ -108,13 +98,5 @@ def create_heatmap_figure(names: list[str], matrix: list[list[int]]):
     #                         fontsize=8)
 
     ax.set_title("How many times each pair was in the same group")
-    # If constrained_layout wasn't available, do a best-effort layout adjustment
-    if not getattr(fig, 'get_constrained_layout_pads', None):
-        # Leave a bit more room for long, rotated x-labels and the colorbar
-        try:
-            fig.tight_layout()
-        except Exception:
-            pass
-    
     return fig
 

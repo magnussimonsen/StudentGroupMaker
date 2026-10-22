@@ -21,7 +21,7 @@ def _is_valid_grid(seats: object) -> bool:
 def load_seating_charts(
     name: str,
 ) -> tuple[dict[str, list[list[str | None]]], str, set[str]] | None:
-    """Load named charts, migrating the original single-grid format."""
+    """Load a class's named charts, the active chart and the charts drawn front at bottom."""
     path = seating_path(name)
     if not path.exists():
         return None
@@ -29,12 +29,6 @@ def load_seating_charts(
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError(f"Invalid seating layout in {path}")
-
-    if "seats" in data:
-        seats = data["seats"]
-        if not _is_valid_grid(seats):
-            raise ValueError(f"Invalid seating layout in {path}")
-        return {"Seating 1": seats}, "Seating 1", set()
 
     charts = data.get("charts")
     active_chart = data.get("active_chart")
@@ -50,7 +44,7 @@ def load_seating_charts(
     if not isinstance(active_chart, str) or active_chart not in charts:
         raise ValueError(f"Invalid active seating chart in {path}")
 
-    front_at_bottom = data.get("front_at_bottom", [])
+    front_at_bottom = data.get("front_at_bottom")
     if (
         not isinstance(front_at_bottom, list)
         or any(not isinstance(chart_name, str) for chart_name in front_at_bottom)

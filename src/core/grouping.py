@@ -25,14 +25,14 @@ def partition_sizes(n_students: int, n_groups: int) -> list[int]:
     return [base + 1] * rem + [base] * (n_groups - rem)
 
 
-def round_cost(groups: list[list[str]], pair_counts: dict) -> int:
+def round_cost(groups: list[list[str]], together: dict[str, dict[str, int]]) -> int:
     """
     Calculate the cost of a round based on pair repetitions.
-    
+
     Args:
         groups: List of groups, where each group is a list of student names
-        pair_counts: Dictionary tracking how many times each pair has been together
-        
+        together: together[a][b] is how many times a and b have been in a group
+
     Returns:
         Total cost (higher means more repetitions)
     """
@@ -40,8 +40,7 @@ def round_cost(groups: list[list[str]], pair_counts: dict) -> int:
     for g in groups:
         for i in range(len(g)):
             for j in range(i + 1, len(g)):
-                a, b = g[i], g[j]
-                cost += pair_counts[frozenset((a, b))]
+                cost += together[g[i]][g[j]]
     return cost
 
 
@@ -76,16 +75,23 @@ def build_round(
     sizes = partition_sizes(len(students), n_groups)
     best_groups, best_cost = None, float("inf")
 
+    # Pair history as a plain lookup table, built once per round, since building
+    # a frozenset for every lookup in the loops below made generation slow
+    together = {
+        s: {t: pair_counts.get(frozenset((s, t)), 0) for t in students}
+        for s in students
+    }
+    # Degree (number of previous pairings) of each student; the same for every restart
+    deg = {
+        s: sum(count for t, count in together[s].items() if t != s)
+        for s in students
+    }
+
     for _ in range(restarts):
         unassigned = students[:]
         rng.shuffle(unassigned)
         groups = []
 
-        # Calculate degree (number of previous pairings) for each student
-        deg = {s: 0 for s in unassigned}
-        for s in unassigned:
-            deg[s] = sum(pair_counts[frozenset((s, t))] for t in unassigned if t != s)
-        
         # Sort by degree (high to low) to prioritize students with many pairings
         unassigned.sort(key=lambda s: (-deg[s], rng.random()))
 
@@ -107,7 +113,8 @@ def build_round(
                 pool = unassigned if len(unassigned) <= 20 else rng.sample(unassigned, 20)
                 
                 for cand in pool:
-                    incr = sum(pair_counts[frozenset((cand, x))] for x in group)
+                    past = together[cand]
+                    incr = sum(past[x] for x in group)
                     if incr < best_incr or (incr == best_incr and rng.random() < 0.5):
                         best_cand, best_incr = cand, incr
                 
@@ -119,7 +126,7 @@ def build_round(
                 
             groups.append(group)
 
-        cost = round_cost(groups, pair_counts)
+        cost = round_cost(groups, together)
         if cost < best_cost:
             best_groups, best_cost = groups, cost
             if best_cost == 0:

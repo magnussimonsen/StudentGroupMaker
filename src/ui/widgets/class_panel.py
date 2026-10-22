@@ -1,19 +1,17 @@
-"""Class management panel (left panel)."""
+"""Class and student management: the class selector, student list and their actions."""
 
 from uuid import uuid4
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QListWidget, QListWidgetItem, QComboBox, QMessageBox
+    QWidget, QLineEdit, QListWidget, QListWidgetItem, QComboBox, QMessageBox
 )
 
-from ...constants.colors_and_styling import Layout
 from ...models import (
     load_class_records, save_class, save_class_records, list_classes, delete_class,
 )
-from ...models.storage import INVALID_FILENAME_CHARACTERS, same_class_file
+from ...models.class_data import SAMPLE_CLASSES
+from ...models.storage import class_name_problem, same_class_file
 
 
 class ClassPanel(QWidget):
@@ -30,60 +28,22 @@ class ClassPanel(QWidget):
         self._load_initial_class()
     
     def _setup_ui(self):
-        """Set up the UI layout."""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)  # Use minimal margins
-        layout.setSpacing(5)  # Use standard spacing
-        
-        # Class selection row
-        classes_row = QHBoxLayout()
+        """Create the class selector, new class field and student list.
+
+        MainWindow places these widgets on its pages; the panel itself is never shown.
+        """
         self.class_combo = QComboBox()
         self.class_combo.addItems(list_classes())
         self.class_combo.currentTextChanged.connect(self._on_class_changed)
-        
-        # Set minimum width based on font size (like rem/em in CSS)
-        # fm = QFontMetrics(self.class_combo.font())
-        # char_width = fm.averageCharWidth()
-        # self.class_combo.setMinimumWidth(char_width * 15)  # ~15 characters wide
-        self.class_combo.setMinimumWidth(100)  # Set minimum width in pixels
 
-        
         self.new_class_name = QLineEdit()
         self.new_class_name.setPlaceholderText("New class name…")
-        
-        # Set minimum width based on font size (like rem/em in CSS)
-        # fm = QFontMetrics(self.new_class_name.font())
-        # char_width = fm.averageCharWidth()
-        # self.new_class_name.setMinimumWidth(char_width * 20)  # ~20 characters wide
         self.new_class_name.setMinimumWidth(180)  # Set minimum width in pixels
 
-        btn_add_class = QPushButton("Add class")
-        btn_add_class.clicked.connect(self._add_class)
-        
-        classes_row.addWidget(QLabel("Class:"))
-        classes_row.addWidget(self.class_combo, 2)
-        classes_row.addWidget(self.new_class_name, 2)
-        classes_row.addWidget(btn_add_class)
-        
-        # Class management buttons
-        class_mgmt_row = QHBoxLayout()
-        btn_del_class = QPushButton("Delete class")
-        btn_del_class.clicked.connect(self._delete_class)
-        
-        class_mgmt_row.addWidget(btn_del_class)
-        class_mgmt_row.addStretch()
-        
-        # Student list
         self.student_list = QListWidget()
-        # Keep interaction simple: use checkboxes for attendance/removal, not list selection.
+        # Checkboxes mark attendance; selection (Edit classes only) picks students to remove
         self.student_list.setSelectionMode(QListWidget.NoSelection)
         self.student_list.itemChanged.connect(self._on_student_item_changed)
-        
-        # Add to main layout
-        layout.addLayout(classes_row)
-        layout.addLayout(class_mgmt_row)
-        layout.addWidget(QLabel("Students in class:"))
-        layout.addWidget(self.student_list, 1)
     
     def _load_initial_class(self):
         """Load the first class if any exist."""
@@ -152,12 +112,14 @@ class ClassPanel(QWidget):
         if new_name == previous_name:
             return
 
+        # Ignore case like the class import does, or the class could be exported
+        # but not imported again
         existing_names = {
-            self.student_list.item(index).text().strip()
+            self.student_list.item(index).text().strip().casefold()
             for index in range(self.student_list.count())
             if self.student_list.item(index) is not item
         }
-        if not new_name or new_name in existing_names:
+        if not new_name or new_name.casefold() in existing_names:
             self.student_list.blockSignals(True)
             item.setText(previous_name)
             self.student_list.blockSignals(False)
@@ -179,20 +141,9 @@ class ClassPanel(QWidget):
     def _add_class(self):
         """Add a new class."""
         name = self.new_class_name.text().strip()
-        if not name:
-            QMessageBox.warning(self, "Class name", "Please enter a class name.")
-            return
-        
-        if (
-            name[-1] == "."
-            or any(c in INVALID_FILENAME_CHARACTERS or ord(c) < 32 for c in name)
-        ):
-            QMessageBox.warning(
-                self,
-                "Class name",
-                'Class names cannot contain any of < > : " / \\ | ? * '
-                "or end with a period.",
-            )
+        problem = class_name_problem(name)
+        if problem is not None:
+            QMessageBox.warning(self, "Class name", problem)
             return
 
         # Compare the way the files are named, or the new class would overwrite
@@ -210,7 +161,13 @@ class ClassPanel(QWidget):
                 self, "Exists", f"The class '{existing}' already exists."
             )
         else:
-            save_class(name, [])
+            try:
+                save_class(name, [])
+            except OSError as error:
+                QMessageBox.critical(
+                    self, "Class not saved", f"The class '{name}' could not be saved.\n\n{error}"
+                )
+                return
             self.class_combo.addItem(name)
             self.class_combo.setCurrentText(name)
         
@@ -221,14 +178,29 @@ class ClassPanel(QWidget):
         name = self.class_combo.currentText()
         if not name:
             return
-        
+        if name in SAMPLE_CLASSES:
+            QMessageBox.information(
+                self,
+                "Sample class",
+                f"'{name}' is a sample class and cannot be deleted.",
+            )
+            return
+
         reply = QMessageBox.question(
             self, "Delete class",
             f"Delete class '{name}'? This removes its JSON file."
         )
         
         if reply == QMessageBox.Yes:
-            delete_class(name)
+            try:
+                delete_class(name)
+            except OSError as error:
+                QMessageBox.critical(
+                    self, "Class not deleted", f"The class '{name}' could not be deleted.\n\n{error}"
+                )
+                # Show what is left on disk: the class stays if its file is still there
+                self.refresh_classes(name)
+                return
             # Removing the item selects the next class (or none), which reloads
             # the student list and notifies the other tabs via _on_class_changed.
             idx = self.class_combo.currentIndex()
@@ -243,7 +215,19 @@ class ClassPanel(QWidget):
         # Sort students alphabetically by first name before saving (and update UI order)
         self._sort_students_by_first_name()
         students = self.get_student_records()
-        save_class_records(name, students)
+        try:
+            save_class_records(name, students)
+        except OSError as error:
+            QMessageBox.critical(
+                self,
+                "Student list not saved",
+                f"The student list of '{name}' could not be saved, so the change "
+                f"has been undone.\n\n{error}",
+            )
+            # Reload the saved list, so the other tabs never act on an unsaved roster
+            # (e.g. drop the seats and red crosses of a student who was not removed)
+            self._on_class_changed(name)
+            return
         self.students_changed.emit(name, students)
 
     def _sort_students_by_first_name(self):
@@ -272,72 +256,71 @@ class ClassPanel(QWidget):
         for name, checked, student_id in items:
             self._add_student_item(name, checked=checked, student_id=student_id)
     
-    def _add_student(self):
-        """Add a student to the list."""
-        name = self.student_input.text().strip()
-        if not name or not self._can_edit_roster():
-            return
-        
-        existing = self.get_all_students()
-        if name in existing:
-            QMessageBox.information(self, "Duplicate", f"'{name}' is already in the list.")
-        else:
-            self._add_student_item(name, checked=True)
-            self._auto_save_class()
-        
-        self.student_input.clear()
-    
     def add_student_from_input(self, name: str):
         """Add a student from external input (e.g., bottom bar)."""
         name = name.strip()
         if not name or not self._can_edit_roster():
             return
         
-        existing = self.get_all_students()
-        if name in existing:
-            QMessageBox.information(self, "Duplicate", f"'{name}' is already in the list.")
+        existing = self._find_student(name)
+        if existing is not None:
+            QMessageBox.information(self, "Duplicate", f"'{existing}' is already in the list.")
         else:
             self._add_student_item(name, checked=True)
             self._auto_save_class()
-    
-    def remove_checked_students(self):
-        """Remove checked students (public method for bottom bar)."""
+
+    def _find_student(self, name: str) -> str | None:
+        """The student whose name matches name ignoring case, as the class import does."""
+        return next(
+            (student for student in self.get_all_students()
+             if student.casefold() == name.casefold()),
+            None,
+        )
+
+    def set_selectable(self, selectable: bool):
+        """Allow selecting students to remove (Edit classes only), keeping checkboxes for attendance."""
+        self.student_list.setSelectionMode(
+            QListWidget.ExtendedSelection if selectable else QListWidget.NoSelection
+        )
+        if not selectable:
+            self.student_list.clearSelection()
+
+    def remove_selected_students(self):
+        """Remove the selected students after confirming."""
         if not self._can_edit_roster():
             return
-        checked_items = [
-            self.student_list.item(i)
-            for i in range(self.student_list.count())
-            if self.student_list.item(i).checkState() == Qt.Checked
-        ]
+        # In list order, so the confirmation lists them as shown
+        selected_items = sorted(self.student_list.selectedItems(), key=self.student_list.row)
 
-        if not checked_items:
+        if not selected_items:
             QMessageBox.information(
                 self,
-                "No students checked",
-                "Check one or more students to remove."
+                "No students selected",
+                "Click a student to select them, or Ctrl-click or Shift-click to "
+                "select several, then remove them."
             )
             return
 
         # Build confirmation message with student names
-        if len(checked_items) == 1:
-            student_name = checked_items[0].text()
+        if len(selected_items) == 1:
+            student_name = selected_items[0].text()
             message = f"Are you sure you want to remove '{student_name}'?"
         else:
-            student_names = [item.text() for item in checked_items]
+            student_names = [item.text() for item in selected_items]
             names_list = "', '".join(student_names)
-            message = f"Are you sure you want to remove these {len(checked_items)} students:\n'{names_list}'?"
+            message = f"Are you sure you want to remove these {len(selected_items)} students:\n'{names_list}'?"
         
         # Show confirmation dialog
         reply = QMessageBox.question(
             self,
-            "Remove student" if len(checked_items) == 1 else "Remove students",
+            "Remove student" if len(selected_items) == 1 else "Remove students",
             message,
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
         
         if reply == QMessageBox.Yes:
-            for item in checked_items:
+            for item in selected_items:
                 self.student_list.takeItem(self.student_list.row(item))
             self._auto_save_class()
     
