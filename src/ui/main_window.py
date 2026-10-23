@@ -252,8 +252,8 @@ class MainWindow(QMainWindow):
         btn_add_student = QPushButton("Add student")
         btn_add_student.clicked.connect(self._add_student)
 
-        btn_remove_student = QPushButton("Remove selected student(s)")
-        btn_remove_student.clicked.connect(self._remove_selected_students)
+        btn_remove_student = QPushButton("Remove checked student(s)")
+        btn_remove_student.clicked.connect(self._remove_checked_students)
 
         btn_all = QPushButton("Check all")
         btn_all.clicked.connect(self._check_all)
@@ -304,9 +304,9 @@ class MainWindow(QMainWindow):
         self.class_panel.add_student_from_input(self.student_input.text())
         self.student_input.clear()
     
-    def _remove_selected_students(self):
-        """Remove selected students via the student actions bar."""
-        self.class_panel.remove_selected_students()
+    def _remove_checked_students(self):
+        """Remove checked students via the student actions bar."""
+        self.class_panel.remove_checked_students()
     
     def _check_all(self):
         """Check all students via the student actions bar."""
@@ -648,9 +648,6 @@ class MainWindow(QMainWindow):
             self.edit_students_layout.addWidget(student_list)
         else:
             self.groups_students_layout.addWidget(student_list)
-        # Students are only selected for removal; elsewhere a selection has no use
-        self.class_panel.set_selectable(mode == "edit_classes")
-
         self.secondary_menubar.setVisible(is_class_seating)
         for button in self.seating_controls.values():
             button.setVisible(is_class_seating)

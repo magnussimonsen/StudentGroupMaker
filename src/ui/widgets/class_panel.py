@@ -41,7 +41,7 @@ class ClassPanel(QWidget):
         self.new_class_name.setMinimumWidth(180)  # Set minimum width in pixels
 
         self.student_list = QListWidget()
-        # Checkboxes mark attendance; selection (Edit classes only) picks students to remove
+        # Checkboxes mark attendance and identify students to remove.
         self.student_list.setSelectionMode(QListWidget.NoSelection)
         self.student_list.itemChanged.connect(self._on_student_item_changed)
     
@@ -277,50 +277,45 @@ class ClassPanel(QWidget):
             None,
         )
 
-    def set_selectable(self, selectable: bool):
-        """Allow selecting students to remove (Edit classes only), keeping checkboxes for attendance."""
-        self.student_list.setSelectionMode(
-            QListWidget.ExtendedSelection if selectable else QListWidget.NoSelection
-        )
-        if not selectable:
-            self.student_list.clearSelection()
-
-    def remove_selected_students(self):
-        """Remove the selected students after confirming."""
+    def remove_checked_students(self):
+        """Remove checked students after confirming."""
         if not self._can_edit_roster():
             return
         # In list order, so the confirmation lists them as shown
-        selected_items = sorted(self.student_list.selectedItems(), key=self.student_list.row)
+        checked_items = [
+            self.student_list.item(index)
+            for index in range(self.student_list.count())
+            if self.student_list.item(index).checkState() == Qt.Checked
+        ]
 
-        if not selected_items:
+        if not checked_items:
             QMessageBox.information(
                 self,
-                "No students selected",
-                "Click a student to select them, or Ctrl-click or Shift-click to "
-                "select several, then remove them."
+                "No students checked",
+                "Check the students you want to remove, then try again."
             )
             return
 
         # Build confirmation message with student names
-        if len(selected_items) == 1:
-            student_name = selected_items[0].text()
+        if len(checked_items) == 1:
+            student_name = checked_items[0].text()
             message = f"Are you sure you want to remove '{student_name}'?"
         else:
-            student_names = [item.text() for item in selected_items]
+            student_names = [item.text() for item in checked_items]
             names_list = "', '".join(student_names)
-            message = f"Are you sure you want to remove these {len(selected_items)} students:\n'{names_list}'?"
+            message = f"Are you sure you want to remove these {len(checked_items)} students:\n'{names_list}'?"
         
         # Show confirmation dialog
         reply = QMessageBox.question(
             self,
-            "Remove student" if len(selected_items) == 1 else "Remove students",
+            "Remove student" if len(checked_items) == 1 else "Remove students",
             message,
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
         
         if reply == QMessageBox.Yes:
-            for item in selected_items:
+            for item in checked_items:
                 self.student_list.takeItem(self.student_list.row(item))
             self._auto_save_class()
     
