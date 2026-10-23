@@ -9,7 +9,11 @@ a = Analysis(
     [os.path.join(ROOT, 'group-maker.py')],
     pathex=[],
     binaries=[],
-    datas=[(os.path.join(ROOT, 'src', 'icons', 'icon.ico'), 'src/icons'), (os.path.join(ROOT, 'src', 'icons', 'icon.png'), 'src/icons')],
+    datas=[
+        (os.path.join(ROOT, 'src', 'icons', 'icon.ico'), 'src/icons'),
+        (os.path.join(ROOT, 'src', 'icons', 'icon.png'), 'src/icons'),
+        (os.path.join(ROOT, 'src', 'img'), 'src/img'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

@@ -7,6 +7,7 @@ from .class_data import (
     list_classes,
     delete_class,
     create_default_class,
+    seed_sample_student_photos,
     export_plan,
 )
 from .storage import DATA_DIR, CLASSES_DIR, class_path, export_path
@@ -19,6 +20,7 @@ __all__ = [
     "list_classes",
     "delete_class",
     "create_default_class",
+    "seed_sample_student_photos",
     "export_plan",
     "export_classes",
     "import_classes",

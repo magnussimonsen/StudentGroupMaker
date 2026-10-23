@@ -8,7 +8,7 @@ from PySide6.QtGui import QFont, QIcon
 from .constants import APP_NAME
 from .constants.colors_and_styling import Layout
 from .ui import MainWindow
-from .models import DATA_DIR, create_default_class
+from .models import DATA_DIR, create_default_class, seed_sample_student_photos
 
 
 def resource_path(relative: str) -> str:
@@ -45,6 +45,7 @@ def main() -> int:
     # so report it if that folder cannot be used instead of failing silently
     try:
         create_default_class()
+        seed_sample_student_photos(Path(resource_path("src/img")))
     except OSError as error:
         QMessageBox.critical(
             None,

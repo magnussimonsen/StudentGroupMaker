@@ -14,6 +14,8 @@ Create random student groups with minimal pair repetition, plan classroom seatin
 
 ## Features
 - Manage multiple classes and student rosters; mark attendance and keep student identities stable when names change
+- Add or replace a student photo in Edit classes and optionally show photos under names in Class Seating
+- Math101 includes bundled example photos for Taylor Swift and Billie Eilish
 - Export selected classes to one JSON file and import them later, including all saved seating charts and, if you choose, their red crosses
 - Switch between the Edit classes, Student Groups, Class Seating, Red Crosses and Break Timer tabs
 - Create, rename, copy, and delete multiple saved seating charts for each class
@@ -31,7 +33,10 @@ Create random student groups with minimal pair repetition, plan classroom seatin
 
 ## Where your data is stored
 Classes, seating charts and red crosses are saved automatically as JSON files in `~/.GroupMaker`
-(on Windows: `C:\Users\<you>\.GroupMaker`). Files are written safely, so a crash never leaves a half-saved file.
+(on Windows: `C:\Users\<you>\.GroupMaker`). Student photos are stored separately in its
+`student_photos` folder, with their filenames saved in each student's class record. Class exports
+include the photos so they are preserved when imported on another computer. Files are written
+safely, so a crash never leaves a half-saved file.
 If a file is ever damaged, it is kept as `<name>.damaged-<date>.json` next to the original instead of being overwritten.
 
 ## Run from source

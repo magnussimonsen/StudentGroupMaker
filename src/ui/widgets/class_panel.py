@@ -1,15 +1,19 @@
 """Class and student management: the class selector, student list and their actions."""
 
+from pathlib import Path
 from uuid import uuid4
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QImageReader
 from PySide6.QtWidgets import (
-    QWidget, QLineEdit, QListWidget, QListWidgetItem, QComboBox, QMessageBox
+    QWidget, QLineEdit, QListWidget, QListWidgetItem, QComboBox, QMessageBox,
+    QFileDialog,
 )
 
 from ...models import (
     load_class_records, save_class, save_class_records, list_classes, delete_class,
 )
+from ...models.class_data import replace_student_photo
 from ...models.class_data import SAMPLE_CLASSES
 from ...models.storage import class_name_problem, same_class_file
 
@@ -77,6 +81,7 @@ class ClassPanel(QWidget):
                 student["name"],
                 checked=True,
                 student_id=student["id"],
+                photo=student.get("photo"),
             )
         self.class_changed.emit(name)
         self.students_changed.emit(name, self.get_student_records())
@@ -92,7 +97,11 @@ class ClassPanel(QWidget):
         return not self._roster_unavailable
 
     def _add_student_item(
-        self, name: str, checked: bool = True, student_id: str | None = None
+        self,
+        name: str,
+        checked: bool = True,
+        student_id: str | None = None,
+        photo: str | None = None,
     ):
         """Add a student to the list."""
         item = QListWidgetItem(name)
@@ -102,6 +111,8 @@ class ClassPanel(QWidget):
         )
         item.setData(Qt.UserRole, student_id or uuid4().hex)
         item.setData(Qt.UserRole + 1, name)
+        if photo:
+            item.setData(Qt.UserRole + 2, photo)
         item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
         self.student_list.addItem(item)
 
@@ -241,7 +252,8 @@ class ClassPanel(QWidget):
             name = item.text().strip()
             checked = (item.checkState() == Qt.Checked)
             student_id = item.data(Qt.UserRole)
-            items.append((name, checked, student_id))
+            photo = item.data(Qt.UserRole + 2)
+            items.append((name, checked, student_id, photo))
 
         # Sort by first token (first name), case-insensitive; tie-breaker on full name
         def sort_key(entry):
@@ -253,8 +265,10 @@ class ClassPanel(QWidget):
 
         # Rebuild list to reflect sorted order while preserving check states
         self.student_list.clear()
-        for name, checked, student_id in items:
-            self._add_student_item(name, checked=checked, student_id=student_id)
+        for name, checked, student_id, photo in items:
+            self._add_student_item(
+                name, checked=checked, student_id=student_id, photo=photo
+            )
     
     def add_student_from_input(self, name: str):
         """Add a student from external input (e.g., bottom bar)."""
@@ -318,6 +332,61 @@ class ClassPanel(QWidget):
             for item in checked_items:
                 self.student_list.takeItem(self.student_list.row(item))
             self._auto_save_class()
+
+    def add_or_change_checked_student_photo(self):
+        """Choose and save a photo for exactly one checked student."""
+        if not self._can_edit_roster():
+            return
+        checked_items = [
+            self.student_list.item(index)
+            for index in range(self.student_list.count())
+            if self.student_list.item(index).checkState() == Qt.Checked
+        ]
+        if len(checked_items) != 1:
+            QMessageBox.information(
+                self,
+                "Select one student",
+                "Check only one student to add or change their photo.",
+            )
+            return
+
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Choose student photo",
+            "",
+            "Image files (*.bmp *.gif *.jpeg *.jpg *.png *.webp)",
+        )
+        if not filename:
+            return
+        reader = QImageReader(filename)
+        if not reader.canRead() or reader.read().isNull():
+            QMessageBox.warning(
+                self, "Invalid photo", "The selected file could not be read as an image."
+            )
+            return
+
+        item = checked_items[0]
+        try:
+            photo, cleanup_error = replace_student_photo(
+                self.class_combo.currentText(),
+                item.data(Qt.UserRole),
+                Path(filename),
+            )
+        except (OSError, ValueError) as error:
+            QMessageBox.critical(self, "Photo not saved", str(error))
+            return
+
+        item.setData(Qt.UserRole + 2, photo)
+        self.students_changed.emit(
+            self.class_combo.currentText(), self.get_student_records()
+        )
+        if cleanup_error is not None:
+            QMessageBox.warning(
+                self,
+                "Photo changed",
+                "The new photo was saved, but the previous photo file could not "
+                f"be removed.\n\n{cleanup_error}",
+            )
     
     def check_all_students(self):
         """Check all students (public method for bottom bar)."""
@@ -335,13 +404,18 @@ class ClassPanel(QWidget):
 
     def get_student_records(self) -> list[dict[str, str]]:
         """Get student IDs and names for identity-aware features."""
-        return [
-            {
-                "id": self.student_list.item(i).data(Qt.UserRole),
-                "name": self.student_list.item(i).text(),
+        students = []
+        for i in range(self.student_list.count()):
+            item = self.student_list.item(i)
+            student = {
+                "id": item.data(Qt.UserRole),
+                "name": item.text(),
             }
-            for i in range(self.student_list.count())
-        ]
+            photo = item.data(Qt.UserRole + 2)
+            if photo:
+                student["photo"] = photo
+            students.append(student)
+        return students
     
     def get_present_students(self) -> list[str]:
         """Get only checked (present) students."""

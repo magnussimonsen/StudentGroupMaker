@@ -17,6 +17,7 @@ DATA_DIR = Path.home() / f".{APP_NAME}"
 CLASSES_DIR = DATA_DIR / "classes"
 SEATINGS_DIR = DATA_DIR / "seatings"
 MARKS_DIR = DATA_DIR / "marks"
+STUDENT_PHOTOS_DIR = DATA_DIR / "student_photos"
 
 # Characters that are not allowed in file names on Windows
 INVALID_FILENAME_CHARACTERS = set('<>:"/\\|?*')
@@ -80,6 +81,28 @@ def write_json_to_temporary_file(path: Path, data: object) -> Path:
     return temporary_path
 
 
+def write_bytes_to_temporary_file(path: Path, data: bytes) -> Path:
+    """Write binary data to a temporary file next to path, ready to be moved into place."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        mode="wb",
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        delete=False,
+    ) as temporary_file:
+        temporary_path = Path(temporary_file.name)
+        try:
+            temporary_file.write(data)
+            temporary_file.flush()
+            os.fsync(temporary_file.fileno())
+        except BaseException:
+            temporary_file.close()
+            temporary_path.unlink(missing_ok=True)
+            raise
+    return temporary_path
+
+
 def write_json_atomically(path: Path, data: object) -> None:
     """Write JSON to a temporary file first, so a crash never leaves a half-written file."""
     temporary_path = write_json_to_temporary_file(path, data)
@@ -119,6 +142,13 @@ def seating_path(name: str) -> Path:
 def marks_path(name: str) -> Path:
     """Get the path to a class red-cross file."""
     return MARKS_DIR / f"{safe_file_name(name)}.json"
+
+
+def student_photo_path(filename: str) -> Path:
+    """Get the path to an app-managed student photo."""
+    if Path(filename).name != filename or not filename:
+        raise ValueError("Invalid student photo filename.")
+    return STUDENT_PHOTOS_DIR / filename
 
 
 def export_path(filename: str = "plan.txt") -> Path:

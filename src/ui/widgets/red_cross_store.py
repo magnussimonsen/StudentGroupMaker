@@ -31,6 +31,20 @@ def confirm_show_red_crosses(parent: QWidget) -> bool:
     return reply == QMessageBox.Yes
 
 
+def confirm_show_student_photos(parent: QWidget) -> bool:
+    """Ask before showing student photos, since the screen may be projected."""
+    reply = QMessageBox.question(
+        parent,
+        "Show student photos",
+        "Are you sure you want to show student photos?\n\n"
+        "If the screen is shown on a projector, the class will "
+        "see the students' photos.",
+        QMessageBox.Yes | QMessageBox.No,
+        QMessageBox.No,
+    )
+    return reply == QMessageBox.Yes
+
+
 def paint_cross(painter: QPainter, rect: QRectF, color: str):
     """Draw a cross filling rect."""
     painter.save()

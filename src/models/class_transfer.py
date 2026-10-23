@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from .class_data import list_classes, load_class_records
 from .marks_data import Marks, load_marks, marks_file_data
@@ -16,19 +19,41 @@ from .storage import (
     class_path,
     marks_path,
     seating_path,
+    student_photo_path,
+    write_bytes_to_temporary_file,
     write_json_atomically,
     write_json_to_temporary_file,
 )
 
 _BUNDLE_FORMAT = "student-group-maker-classes"
 _BUNDLE_VERSION = 1
+_PHOTO_SUFFIXES = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
 
 
 def _export_students(name: str) -> list[dict[str, str]]:
     if not class_path(name).exists():
         raise ValueError(f"Class data for '{name}' could not be found.")
     # Checked like an import, so every exported file can be imported again
-    return _validate_imported_students(load_class_records(name), name)
+    records = _validate_imported_students(
+        load_class_records(name), name, allow_local_photo=True
+    )
+    exported = []
+    for record in records:
+        student = {"id": record["id"], "name": record["name"]}
+        photo = record.get("photo")
+        if photo:
+            photo_path = student_photo_path(photo)
+            try:
+                photo_data = photo_path.read_bytes()
+            except OSError as error:
+                raise ValueError(
+                    f"The photo for '{record['name']}' in '{name}' could not be read: "
+                    f"{error}"
+                ) from error
+            student["photo_data"] = base64.b64encode(photo_data).decode("ascii")
+            student["photo_suffix"] = photo_path.suffix.lower()
+        exported.append(student)
+    return exported
 
 
 def _export_seating(name: str, students: list[dict[str, str]]) -> dict[str, Any] | None:
@@ -106,7 +131,9 @@ def _validate_class_name(name: object) -> str:
     return normalized
 
 
-def _validate_imported_students(students: object, class_name: str) -> list[dict[str, str]]:
+def _validate_imported_students(
+    students: object, class_name: str, allow_local_photo: bool = False
+) -> list[dict[str, str]]:
     if not isinstance(students, list):
         raise ValueError(f"Class '{class_name}' has an invalid student list.")
 
@@ -118,6 +145,9 @@ def _validate_imported_students(students: object, class_name: str) -> list[dict[
             raise ValueError(f"Class '{class_name}' contains an invalid student record.")
         student_id = student.get("id")
         student_name = student.get("name")
+        photo_data = student.get("photo_data")
+        photo_suffix = student.get("photo_suffix")
+        photo = student.get("photo")
         if (
             not isinstance(student_id, str)
             or not student_id
@@ -132,7 +162,33 @@ def _validate_imported_students(students: object, class_name: str) -> list[dict[
             )
         seen_ids.add(student_id)
         seen_names.add(normalized_name.casefold())
-        records.append({"id": student_id, "name": normalized_name})
+        record = {"id": student_id, "name": normalized_name}
+        if allow_local_photo and photo is not None:
+            if (
+                not isinstance(photo, str)
+                or Path(photo).name != photo
+                or Path(photo).suffix.lower() not in _PHOTO_SUFFIXES
+            ):
+                raise ValueError(f"Class '{class_name}' contains an invalid photo.")
+            record["photo"] = photo
+        if photo_data is not None or photo_suffix is not None:
+            if (
+                not isinstance(photo_data, str)
+                or not isinstance(photo_suffix, str)
+                or photo_suffix.lower() not in _PHOTO_SUFFIXES
+            ):
+                raise ValueError(f"Class '{class_name}' contains invalid photo data.")
+            try:
+                base64.b64decode(photo_data, validate=True)
+            except (binascii.Error, ValueError) as error:
+                raise ValueError(
+                    f"Class '{class_name}' contains invalid photo data."
+                ) from error
+            record["photo_data"] = photo_data
+            record["photo_suffix"] = photo_suffix.lower()
+        if photo is not None and not allow_local_photo:
+            raise ValueError(f"Class '{class_name}' contains an unsupported photo path.")
+        records.append(record)
     return records
 
 
@@ -295,8 +351,26 @@ def import_classes(source: Path) -> list[tuple[str, str]]:
     try:
         for original_name, students, seating, red_crosses in validated_classes:
             imported_name = _get_available_class_name(original_name, reserved_names)
+            imported_students = []
+            for student in students:
+                imported_student = {"id": student["id"], "name": student["name"]}
+                photo_data = student.get("photo_data")
+                if photo_data is not None:
+                    suffix = student["photo_suffix"]
+                    photo_filename = f"{uuid4().hex}{suffix}"
+                    target_photo = student_photo_path(photo_filename)
+                    staged_files.append(
+                        (
+                            write_bytes_to_temporary_file(
+                                target_photo, base64.b64decode(photo_data, validate=True)
+                            ),
+                            target_photo,
+                        )
+                    )
+                    imported_student["photo"] = photo_filename
+                imported_students.append(imported_student)
             for target_file, data in (
-                (class_path(imported_name), {"students": students}),
+                (class_path(imported_name), {"students": imported_students}),
                 (seating_path(imported_name), seating),
                 (marks_path(imported_name), red_crosses),
             ):

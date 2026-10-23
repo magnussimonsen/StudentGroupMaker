@@ -106,7 +106,8 @@ class MainWindow(QMainWindow):
 
         self.seating_controls = {}
         for label in ("Add row", "Remove row", "Add column", "Remove column",
-                      "Export seating as PNG", "Show red crosses", "Flip classroom"):
+                      "Export seating as PNG", "Show red crosses",
+                      "Show photo", "Flip classroom"):
             button = QPushButton(label)
             button.hide()
             self.secondary_menubar_layout.addWidget(button)
@@ -132,6 +133,10 @@ class MainWindow(QMainWindow):
         show_crosses_button.setObjectName("showRedCrossesButton")
         show_crosses_button.setCheckable(True)
         show_crosses_button.toggled.connect(self._on_show_crosses_toggled)
+        show_photos_button = self.seating_controls["Show photo"]
+        show_photos_button.setObjectName("showStudentPhotosButton")
+        show_photos_button.setCheckable(True)
+        show_photos_button.toggled.connect(self._on_show_photos_toggled)
         self.seating_controls["Export seating as PNG"].clicked.connect(
             self.class_seating_panel.export_png
         )
@@ -255,6 +260,11 @@ class MainWindow(QMainWindow):
         btn_remove_student = QPushButton("Remove checked student(s)")
         btn_remove_student.clicked.connect(self._remove_checked_students)
 
+        btn_student_photo = QPushButton("Add/Change student photo")
+        btn_student_photo.clicked.connect(
+            self.class_panel.add_or_change_checked_student_photo
+        )
+
         btn_all = QPushButton("Check all")
         btn_all.clicked.connect(self._check_all)
 
@@ -263,6 +273,7 @@ class MainWindow(QMainWindow):
 
         students_row.addWidget(make_group(self.student_input, btn_add_student))
         students_row.addWidget(btn_remove_student)
+        students_row.addWidget(btn_student_photo)
         students_row.addWidget(btn_all)
         students_row.addWidget(btn_none)
 
@@ -664,6 +675,15 @@ class MainWindow(QMainWindow):
         shown = self.class_seating_panel.set_show_crosses(checked)
         if shown != checked:
             button = self.seating_controls["Show red crosses"]
+            button.blockSignals(True)
+            button.setChecked(shown)
+            button.blockSignals(False)
+
+    def _on_show_photos_toggled(self, checked: bool):
+        """Show or hide student photos, unchecking the button if the teacher cancels."""
+        shown = self.class_seating_panel.set_show_student_photos(checked)
+        if shown != checked:
+            button = self.seating_controls["Show photo"]
             button.blockSignals(True)
             button.setChecked(shown)
             button.blockSignals(False)

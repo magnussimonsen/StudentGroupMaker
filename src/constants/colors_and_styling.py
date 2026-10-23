@@ -259,13 +259,15 @@ QPushButton#flipClassroomButton:pressed {{
     color: {DarkTheme.BUTTON_PRESSED_TEXT_COLOR};
 }}
 
-/* Red while the crosses are visible, so the teacher notices before projecting */
-QPushButton#showRedCrossesButton:checked {{
+/* Red while sensitive student information is visible on the seating chart */
+QPushButton#showRedCrossesButton:checked,
+QPushButton#showStudentPhotosButton:checked {{
     background-color: {DarkTheme.DANGER_BG_COLOR};
     border: 1px solid {DarkTheme.DANGER_BG_COLOR_PRESSED};
     color: {DarkTheme.DANGER_TEXT_COLOR};
 }}
-QPushButton#showRedCrossesButton:checked:hover {{
+QPushButton#showRedCrossesButton:checked:hover,
+QPushButton#showStudentPhotosButton:checked:hover {{
     background-color: {DarkTheme.DANGER_BG_COLOR_HOVER};
 }}
 
@@ -516,13 +518,15 @@ QPushButton#flipClassroomButton:pressed {{
     color: {LightTheme.BUTTON_PRESSED_TEXT_COLOR};
 }}
 
-/* Red while the crosses are visible, so the teacher notices before projecting */
-QPushButton#showRedCrossesButton:checked {{
+/* Red while sensitive student information is visible on the seating chart */
+QPushButton#showRedCrossesButton:checked,
+QPushButton#showStudentPhotosButton:checked {{
     background-color: {LightTheme.DANGER_BG_COLOR};
     border: 1px solid {LightTheme.DANGER_BG_COLOR_PRESSED};
     color: {LightTheme.DANGER_TEXT_COLOR};
 }}
-QPushButton#showRedCrossesButton:checked:hover {{
+QPushButton#showRedCrossesButton:checked:hover,
+QPushButton#showStudentPhotosButton:checked:hover {{
     background-color: {LightTheme.DANGER_BG_COLOR_HOVER};
 }}
 

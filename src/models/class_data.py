@@ -5,11 +5,24 @@ This module handles loading, saving, and managing class/student data.
 """
 from __future__ import annotations
 import json
+import os
+import shutil
 from pathlib import Path
 from uuid import uuid4
 
-from .storage import class_path, marks_path, seating_path, write_json_atomically, CLASSES_DIR
+from .storage import (
+    CLASSES_DIR,
+    STUDENT_PHOTOS_DIR,
+    class_path,
+    marks_path,
+    seating_path,
+    student_photo_path,
+    write_json_atomically,
+)
 from ..constants import DEFAULT_STUDENTS, DEFAULT_MATH102_STUDENTS
+
+
+_PHOTO_SUFFIXES = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".webp"}
 
 
 def load_class_records(name: str) -> list[dict[str, str]]:
@@ -36,6 +49,7 @@ def load_class_records(name: str) -> list[dict[str, str]]:
     for student in students:
         student_id = student.get("id") if isinstance(student, dict) else None
         student_name = student.get("name") if isinstance(student, dict) else None
+        photo = student.get("photo") if isinstance(student, dict) else None
         if (
             not isinstance(student_id, str)
             or not student_id
@@ -44,14 +58,79 @@ def load_class_records(name: str) -> list[dict[str, str]]:
             or not student_name.strip()
         ):
             raise ValueError(f"The student list of '{name}' contains an invalid student.")
+        if photo is not None and (
+            not isinstance(photo, str)
+            or Path(photo).name != photo
+            or Path(photo).suffix.lower() not in _PHOTO_SUFFIXES
+        ):
+            raise ValueError(f"The student list of '{name}' contains an invalid photo.")
         seen_ids.add(student_id)
-        records.append({"id": student_id, "name": student_name.strip()})
+        record = {"id": student_id, "name": student_name.strip()}
+        if photo is not None:
+            record["photo"] = photo
+        records.append(record)
     return records
 
 
 def save_class_records(name: str, students: list[dict[str, str]]) -> None:
     """Save student records without changing their stable IDs."""
     write_json_atomically(class_path(name), {"students": students})
+
+
+def replace_student_photo(
+    name: str, student_id: str, source: Path
+) -> tuple[str, OSError | None]:
+    """Install a new photo for a student, keeping the old photo if saving fails."""
+    suffix = source.suffix.lower()
+    if suffix not in _PHOTO_SUFFIXES:
+        raise ValueError("Choose a PNG, JPEG, BMP, GIF, or WebP image.")
+
+    students = load_class_records(name)
+    student = next((record for record in students if record["id"] == student_id), None)
+    if student is None:
+        raise ValueError("The selected student is no longer in this class.")
+
+    old_photo = student.get("photo")
+    new_photo = f"{uuid4().hex}{suffix}"
+    new_path = student_photo_path(new_photo)
+    temporary_path = new_path.with_name(f".{new_path.name}.tmp")
+    STUDENT_PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        shutil.copyfile(source, temporary_path)
+        os.replace(temporary_path, new_path)
+        student["photo"] = new_photo
+        save_class_records(name, students)
+    except BaseException:
+        temporary_path.unlink(missing_ok=True)
+        new_path.unlink(missing_ok=True)
+        raise
+
+    if old_photo:
+        old_path = student_photo_path(old_photo)
+        if old_path != new_path:
+            try:
+                old_path.unlink(missing_ok=True)
+            except OSError as error:
+                return new_photo, error
+    return new_photo, None
+
+
+def seed_sample_student_photos(source_directory: Path) -> None:
+    """Copy bundled example photos into Math101 when those students have none."""
+    sample_photos = {
+        "Taylor Swift": "Taylor-Swift.png",
+        "Billie Eilish": "Billie-Eilish.png",
+    }
+    students = load_class_records("Math101")
+    for student in students:
+        filename = sample_photos.get(student["name"])
+        if filename is None or student.get("photo"):
+            continue
+        replace_student_photo(
+            "Math101",
+            student["id"],
+            source_directory / filename,
+        )
 
 
 def save_class(name: str, students: list[str]) -> None:

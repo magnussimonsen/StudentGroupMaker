@@ -6,7 +6,7 @@ from pathlib import Path
 from PySide6.QtCore import (
     QByteArray, QEvent, QMimeData, QPointF, QRect, QRectF, QStandardPaths, Qt, Signal,
 )
-from PySide6.QtGui import QDrag, QPainter, QPalette, QPixmap
+from PySide6.QtGui import QDrag, QFontMetrics, QPainter, QPalette, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFileDialog,
@@ -29,9 +29,19 @@ from PySide6.QtWidgets import (
 )
 
 from ...models.seating_data import load_seating_charts, save_seating_charts
-from ...models.storage import backup_damaged_file, safe_file_name, seating_path
+from ...models.storage import (
+    backup_damaged_file,
+    safe_file_name,
+    seating_path,
+    student_photo_path,
+)
 from .red_cross_store import (
-    GREEN_CROSS_COLOR, RED_CROSS_COLOR, RedCrossStore, confirm_show_red_crosses, paint_cross,
+    GREEN_CROSS_COLOR,
+    RED_CROSS_COLOR,
+    RedCrossStore,
+    confirm_show_red_crosses,
+    confirm_show_student_photos,
+    paint_cross,
 )
 
 _STUDENT_MIME_TYPE = "application/x-student-group-maker-seat"
@@ -40,6 +50,7 @@ _DEFAULT_COLUMNS = 6
 MAX_ROWS = 15
 MAX_COLUMNS = 12
 _ROW_HEIGHT = 72
+_PHOTO_ROW_HEIGHT = 132
 _EMPTY_LINE_SCALE = 0.5  # Rows/columns without students are drawn at half size
 _DESK_CROSSES = 5  # Crosses above an occupied desk; one more appears when all are red
 _CROSS_SIZE = 14
@@ -145,14 +156,67 @@ class _SeatDelegate(QStyledItemDelegate):
         option.state &= ~(QStyle.State_Selected | QStyle.State_HasFocus)
         table = self.parent()
         student_id = index.data(Qt.UserRole)
-        if student_id is None or not table.show_crosses:
+        if student_id is None or (
+            not table.show_crosses and not table.show_student_photos
+        ):
             super().paint(painter, option, index)
             return
 
-        red_count = table.red_crosses.count(student_id)
-        slots = _desk_cross_slots(option.rect, red_count)
-        # Center the name in the space below the crosses
-        option.rect = option.rect.adjusted(0, int(slots[0].bottom() - option.rect.top()), 0, 0)
+        if table.show_student_photos:
+            slots = []
+            content_rect = option.rect.adjusted(4, 2, -4, -2)
+            if table.show_crosses:
+                red_count = table.red_crosses.count(student_id)
+                slots = _desk_cross_slots(option.rect, red_count)
+                content_rect.setTop(int(slots[0].bottom() + 2))
+
+            option.text = ""
+            super().paint(painter, option, index)
+            photo = index.data(Qt.UserRole + 1)
+            name_height = QFontMetrics(option.font).height() + 4
+            photo_rect = content_rect.adjusted(0, 0, 0, -name_height)
+            if isinstance(photo, QPixmap) and not photo.isNull():
+                scaled = photo.scaled(
+                    photo_rect.size(),
+                    Qt.KeepAspectRatioByExpanding,
+                    Qt.SmoothTransformation,
+                )
+                if scaled.width() > photo_rect.width():
+                    source_rect = QRect(
+                        (scaled.width() - photo_rect.width()) // 2,
+                        0,
+                        photo_rect.width(),
+                        photo_rect.height(),
+                    )
+                else:
+                    source_rect = QRect(
+                        0,
+                        (scaled.height() - photo_rect.height()) // 2,
+                        photo_rect.width(),
+                        photo_rect.height(),
+                    )
+                painter.drawPixmap(photo_rect, scaled, source_rect)
+
+            text_rect = content_rect.adjusted(0, content_rect.height() - name_height, 0, 0)
+            painter.save()
+            painter.setPen(option.palette.color(QPalette.Text))
+            painter.drawText(
+                text_rect, Qt.AlignHCenter | Qt.AlignVCenter, index.data(Qt.DisplayRole)
+            )
+            painter.restore()
+
+            for slot_index, slot in enumerate(slots):
+                color = RED_CROSS_COLOR if slot_index < red_count else GREEN_CROSS_COLOR
+                paint_cross(painter, _cross_in_slot(slot), color)
+            return
+
+        slots = []
+        if table.show_crosses:
+            red_count = table.red_crosses.count(student_id)
+            slots = _desk_cross_slots(option.rect, red_count)
+            option.rect = option.rect.adjusted(
+                0, int(slots[0].bottom() - option.rect.top()), 0, 0
+            )
         super().paint(painter, option, index)
         for slot_index, slot in enumerate(slots):
             color = RED_CROSS_COLOR if slot_index < red_count else GREEN_CROSS_COLOR
@@ -169,6 +233,7 @@ class SeatingTable(QTableWidget):
         self.red_crosses = red_crosses
         # Hidden by default, since the classroom may be shown on a projector
         self.show_crosses = False
+        self.show_student_photos = False
         self.setAcceptDrops(True)
         self.setDragEnabled(True)
         self.setDropIndicatorShown(True)
@@ -205,7 +270,10 @@ class SeatingTable(QTableWidget):
         """Shrink rows and columns that have no seated students."""
         for row in range(self.rowCount()):
             scale = _EMPTY_LINE_SCALE if row in empty_rows else 1
-            self.setRowHeight(row, int(_ROW_HEIGHT * scale))
+            row_height = (
+                _PHOTO_ROW_HEIGHT if self.show_student_photos else _ROW_HEIGHT
+            )
+            self.setRowHeight(row, int(row_height * scale))
         self._empty_columns = set(empty_columns)
         self._update_column_widths()
 
@@ -348,6 +416,7 @@ class ClassSeatingPanel(QWidget):
         self.red_crosses = red_crosses
         self.class_name = ""
         self.students: dict[str, str] = {}
+        self.photo_paths: dict[str, str] = {}
         self.front_at_bottom: set[str] = set()
         self.seats: list[list[str | None]] = [
             [None] * _DEFAULT_COLUMNS for _ in range(_DEFAULT_ROWS)
@@ -458,6 +527,13 @@ class ClassSeatingPanel(QWidget):
             if isinstance(student, dict)
             and isinstance(student.get("id"), str)
             and isinstance(student.get("name"), str)
+        }
+        self.photo_paths = {
+            student["id"]: student["photo"]
+            for student in students
+            if isinstance(student, dict)
+            and isinstance(student.get("id"), str)
+            and isinstance(student.get("photo"), str)
         }
         for seats in self.charts.values():
             self._reconcile_roster(seats)
@@ -724,6 +800,15 @@ class ClassSeatingPanel(QWidget):
                 student_name = self.students.get(student_id)
                 item = QTableWidgetItem(student_name if student_name is not None else "-")
                 item.setData(Qt.UserRole, student_id)
+                if (
+                    self.seating_table.show_student_photos
+                    and student_id is not None
+                    and student_id in self.photo_paths
+                ):
+                    item.setData(
+                        Qt.UserRole + 1,
+                        QPixmap(str(student_photo_path(self.photo_paths[student_id]))),
+                    )
                 item.setTextAlignment(Qt.AlignCenter)
                 flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDropEnabled
                 if student_id is not None:
@@ -740,6 +825,14 @@ class ClassSeatingPanel(QWidget):
         }
         self.seating_table.set_empty_lines(empty_rows, empty_columns)
         self.grid_dimensions_changed.emit(rows, columns)
+
+    def set_show_student_photos(self, show: bool) -> bool:
+        """Show or hide student photos, confirming first since others may be watching."""
+        if show:
+            show = confirm_show_student_photos(self)
+        self.seating_table.show_student_photos = show
+        self._refresh()
+        return show
 
     def _save_and_refresh(self):
         self._reconcile_roster(self.seats)
